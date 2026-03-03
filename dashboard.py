@@ -1,8 +1,11 @@
 import streamlit as st
 import json
 from datetime import datetime
+import os
 import sys
-sys.path.insert(0, '/Users/gerard/.openclaw/workspace/shopee-api-onboarding')
+
+# Add current directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 st.set_page_config(
     page_title="PPMJ Ads - Shopee Automation",
