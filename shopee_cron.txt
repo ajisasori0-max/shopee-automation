@@ -1,0 +1,20 @@
+# Shopee Automation - Stock Monitoring (Every 4 hours)
+0 */4 * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && python3 shopee_monitor.py --check stock >> /Users/gerard/.openclaw/workspace/shopee-api-onboarding/logs/stock.log 2>&1
+
+# Shopee Automation - Order Monitoring (Every 6 hours)
+0 */6 * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && python3 shopee_monitor.py --check orders >> /Users/gerard/.openclaw/workspace/shopee-api-onboarding/logs/orders.log 2>&1
+
+# Shopee Automation - Price Monitoring (Daily 8 AM)
+0 8 * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && python3 shopee_monitor.py --check prices >> /Users/gerard/.openclaw/workspace/shopee-api-onboarding/logs/prices.log 2>&1
+
+# Shopee Automation - Ad Monitoring (Daily 9 AM)
+0 9 * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && python3 shopee_monitor.py --check ads >> /Users/gerard/.openclaw/workspace/shopee-api-onboarding/logs/ads.log 2>&1
+
+# Shopee Automation - Sales Growth Insights (Daily 10 AM)
+0 10 * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && python3 shopee_monitor.py --check growth >> /Users/gerard/.openclaw/workspace/shopee-api-onboarding/logs/growth.log 2>&1
+
+# Shopee Automation - Full Check (Daily 7 AM)
+0 7 * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && python3 shopee_monitor.py --check all >> /Users/gerard/.openclaw/workspace/shopee-api-onboarding/logs/daily.log 2>&1
+
+# Shopee Automation - Monthly Report (29th of each month, 11:59 PM)
+59 23 29 * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && python3 monthly_report.py >> /Users/gerard/.openclaw/workspace/shopee-api-onboarding/logs/monthly.log 2>&1
