@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPMJ Ads - Shopee Automation Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+        header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        header p { opacity: 0.9; font-size: 1.1em; }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 1.3em;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .status-active { background: #d4edda; color: #155724; }
+        .status-warning { background: #fff3cd; color: #856404; }
+        .status-critical { background: #f8d7da; color: #721c24; }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .metric:last-child { border-bottom: none; }
+        .metric-label { color: #666; }
+        .metric-value { font-weight: 600; color: #333; }
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .schedule-table th,
+        .schedule-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .schedule-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .api-status {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .api-badge {
+            background: #f8f9fa;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .api-badge .label {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .api-badge .value {
+            font-weight: 600;
+            color: #333;
+        }
+        footer {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+            margin-top: 30px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🦊 PPMJ Ads</h1>
+            <p>Shopee Seller Automation Platform | Automated Monitoring & Management</p>
+        </header>
+
+        <div class="cards">
+            <div class="card">
+                <h3>📦 Stock Monitoring</h3>
+                <span class="status-badge status-critical">2 Critical Alerts</span>
+                <div class="metric">
+                    <span class="metric-label">Produk Tes Payung (Red)</span>
+                    <span class="metric-value">50 left</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Produk Tes Payung (Blue)</span>
+                    <span class="metric-value">100 left</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Check Frequency</span>
+                    <span class="metric-value">Every 4 hours</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Check</span>
+                    <span class="metric-value">2 hours ago</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📊 Ad Performance</h3>
+                <span class="status-badge status-warning">Balance Low</span>
+                <div class="metric">
+                    <span class="metric-label">Current Balance</span>
+                    <span class="metric-value">Rp 0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">ROAS</span>
+                    <span class="metric-value">N/A</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Campaigns</span>
+                    <span class="metric-value">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Check Frequency</span>
+                    <span class="metric-value">Daily at 9 AM</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📋 Orders & Returns</h3>
+                <span class="status-badge status-active">No Issues</span>
+                <div class="metric">
+                    <span class="metric-label">Returns Pending</span>
+                    <span class="metric-value">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Cancellations</span>
+                    <span class="metric-value">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Orders This Week</span>
+                    <span class="metric-value">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Check Frequency</span>
+                    <span class="metric-value">Every 6 hours</span>
+                </div>
+            </div>
+
+            <div class="card full-width">
+                <h3>⏰ Automation Schedule</h3>
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Frequency</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Stock Check</td>
+                            <td>Every 4 hours</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>Order Monitor</td>
+                            <td>Every 6 hours</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>Price Check</td>
+                            <td>Daily 8 AM</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>Ad Check</td>
+                            <td>Daily 9 AM</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>Growth Insights</td>
+                            <td>Daily 10 AM</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>Full Report</td>
+                            <td>Daily 7 AM</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>Monthly Report</td>
+                            <td>29th 11:59 PM</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card full-width">
+                <h3>🔗 API Connection Status</h3>
+                <div class="api-status">
+                    <div class="api-badge">
+                        <div class="label">Environment</div>
+                        <div class="value">🏗️ Sandbox</div>
+                    </div>
+                    <div class="api-badge">
+                        <div class="label">Partner ID</div>
+                        <div class="value">1221616</div>
+                    </div>
+                    <div class="api-badge">
+                        <div class="label">Shop ID</div>
+                        <div class="value">226682118</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>PPMJ Ads - Shopee Open Platform Integration | Built with ❤️ by Gerard</p>
+        </footer>
+    </div>
+</body>
+</html>
