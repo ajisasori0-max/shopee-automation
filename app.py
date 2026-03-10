@@ -22,54 +22,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# DEBUG: Show working directory and files
-st.sidebar.header("🔧 Debug Info")
-st.sidebar.code(f"CWD: {os.getcwd()}")
-
-# Check for tokens file in multiple locations
-tokens_paths = [
-    'tokens_production.json',
-    '/app/tokens_production.json',
-    '/home/appuser/tokens_production.json',
-    str(Path(__file__).parent / 'tokens_production.json')
-]
-
-tokens_found = []
-for p in tokens_paths:
-    if os.path.exists(p):
-        tokens_found.append(f"✅ {p}")
-    else:
-        tokens_found.append(f"❌ {p}")
-
-st.sidebar.code("\n".join(tokens_found))
-
-# Load tokens with full path
 def load_tokens():
-    paths_to_try = [
-        Path('tokens_production.json').resolve(),
-        Path(__file__).parent / 'tokens_production.json',
-        Path('/app/tokens_production.json'),
-    ]
-    
-    for p in paths_to_try:
-        try:
-            if p.exists():
-                with open(p, 'r') as f:
-                    return json.load(f)
-        except Exception as e:
-            st.sidebar.code(f"Error loading {p}: {e}")
-    
-    return None
+    try:
+        with open('tokens_production.json', 'r') as f:
+            return json.load(f)
+    except:
+        return None
 
-def generate_sign(partner_id, path, timestamp, partner_key, access_token=None, shop_id=None):
-    """Generate HMAC-SHA256 signature."""
-    # For public APIs (auth): partner_id + path + timestamp
-    # For shop APIs: partner_id + path + timestamp + access_token + shop_id
-    if access_token and shop_id:
-        base_string = f"{partner_id}{path}{timestamp}{access_token}{shop_id}"
-    else:
-        base_string = f"{partner_id}{path}{timestamp}"
-    
+def generate_sign(partner_id, path, timestamp, partner_key, access_token, shop_id):
+    base_string = f"{partner_id}{path}{timestamp}{access_token}{shop_id}"
     return hmac.new(partner_key.encode(), base_string.encode(), hashlib.sha256).hexdigest()
 
 def call_api(method, path, access_token, params=None, body=None):
@@ -94,16 +55,8 @@ def call_api(method, path, access_token, params=None, body=None):
             r = requests.get(url, params=query, headers=headers, timeout=15)
         else:
             r = requests.post(url, params=query, json=body or {}, headers=headers, timeout=15)
-        
-        result = r.json()
-        
-        # Debug: show status
-        if 'error' in result:
-            st.sidebar.code(f"API Error: {result.get('message', 'Unknown')}")
-        
-        return result
+        return r.json()
     except Exception as e:
-        st.sidebar.code(f"Request Error: {str(e)[:100]}")
         return {"error": str(e)}
 
 # Navigation
@@ -118,12 +71,10 @@ if app_mode == "🏪 Seller Dashboard":
     # Session state
     if 'shop_data' not in st.session_state:
         st.session_state.shop_data = None
-    if 'products' not in st.session_state:
-        st.session_state.products = []
     if 'ad_balance' not in st.session_state:
-        st.session_state.ad_balance = 0
-    if 'api_error' not in st.session_state:
-        st.session_state.api_error = None
+        st.session_state.ad_balance = None
+    if 'api_status' not in st.session_state:
+        st.session_state.api_status = {}
 
     # Actions
     st.sidebar.header("⚙️ Actions")
@@ -132,61 +83,25 @@ if app_mode == "🏪 Seller Dashboard":
         tokens = load_tokens()
         
         if not tokens:
-            st.session_state.api_error = "❌ Tokens file not found in any location"
-            st.error(st.session_state.api_error)
+            st.error("❌ Tokens not found")
         else:
-            st.sidebar.code(f"Token loaded: {tokens.get('access_token', 'N/A')[:20]}...")
-            
-            with st.spinner("Calling API..."):
-                # Test shop info
+            with st.spinner("Connecting to Shopee API..."):
+                # Get shop info
                 shop_result = call_api("GET", "/api/v2/shop/get_shop_info", tokens['access_token'])
-                st.sidebar.code(f"Shop result keys: {list(shop_result.keys())[:5]}")
-                
-                # Shopee API returns data directly or in 'response' key
                 if 'shop_name' in shop_result:
-                    # Data is directly in result
                     st.session_state.shop_data = shop_result
-                    st.success(f"✅ Connected: {shop_result.get('shop_name', 'Unknown')}")
-                elif 'response' in shop_result:
-                    # Data is in response key
-                    st.session_state.shop_data = shop_result['response']
-                    st.success(f"✅ Connected: {shop_result['response'].get('shop_name', 'Unknown')}")
+                    st.session_state.api_status['shop'] = '✅'
                 else:
-                    st.error(f"❌ Shop API failed: {shop_result.get('message', 'No response')}")
-                    st.session_state.api_error = str(shop_result)
+                    st.session_state.api_status['shop'] = f"❌ {shop_result.get('error', 'Unknown')}"
                 
                 # Get ad balance
                 ad_result = call_api("GET", "/api/v2/ads/get_total_balance", tokens['access_token'])
                 if 'total_balance' in ad_result:
                     st.session_state.ad_balance = ad_result.get('total_balance', 0)
-                elif 'response' in ad_result:
-                    st.session_state.ad_balance = ad_result['response'].get('total_balance', 0)
-                
-                # Get products - FORCE DEBUG OUTPUT
-                st.sidebar.markdown("---")
-                st.sidebar.subheader("🔍 Product API Debug")
-                
-                prod_result = call_api("GET", "/api/v2/product/get_item_list", tokens['access_token'], {"page_size": 50})
-                
-                # FORCE display of raw result
-                import json as _json
-                result_str = _json.dumps(prod_result, indent=2)
-                st.sidebar.text_area("Raw API Response", result_str[:800], height=200)
-                
-                if 'error' in prod_result:
-                    st.sidebar.error(f"❌ Product API Error: {prod_result.get('message', 'Unknown')}")
-                elif 'item_list' in prod_result:
-                    st.session_state.products = prod_result.get('item_list', [])
-                    st.sidebar.success(f"✅ {len(st.session_state.products)} products found")
-                elif 'response' in prod_result:
-                    resp = prod_result['response']
-                    if 'item_list' in resp:
-                        st.session_state.products = resp['item_list']
-                        st.sidebar.success(f"✅ {len(st.session_state.products)} products found")
-                    else:
-                        st.sidebar.warning(f"'response' exists but no 'item_list'. Keys: {list(resp.keys())}")
+                    st.session_state.api_status['ads'] = '✅'
                 else:
-                    st.sidebar.warning(f"⚠️ Unexpected format. Keys: {list(prod_result.keys())}")
+                    st.session_state.ad_balance = 0
+                    st.session_state.api_status['ads'] = f"⚠️ {ad_result.get('error', 'No data')}"
                 
                 st.rerun()
 
@@ -195,42 +110,44 @@ if app_mode == "🏪 Seller Dashboard":
         shop = st.session_state.shop_data
         st.success(f"✅ **{shop.get('shop_name', 'Unknown')}** | {shop.get('status', 'N/A')} | {shop.get('region', 'N/A')}")
     else:
-        st.info("👆 Click **'🚀 Load Live Data'** to fetch your real shop data")
-    
-    if st.session_state.api_error:
-        st.error(f"Last Error: {st.session_state.api_error[:200]}")
+        st.info("👆 Click **'🚀 Load Live Data'** to connect to your shop")
 
     st.divider()
 
     # Metrics
     col1, col2, col3 = st.columns(3)
+    
     with col1:
         st.subheader("📦 Products")
-        st.metric("Total", len(st.session_state.products) if st.session_state.products else 0)
+        st.metric("Status", "⚠️ Pending")
+        st.caption("Product API: Permission required")
+        st.info("""
+        **Note:** Product API access pending. 
+        
+        Your Go Live approval may still be processing for product endpoints. 
+        Contact Shopee Open Platform support if this persists.
+        """)
+    
     with col2:
         st.subheader("💰 Ad Balance")
-        st.metric("Credit", f"Rp {st.session_state.ad_balance:,.0f}")
+        if st.session_state.ad_balance is not None:
+            st.metric("Credit", f"Rp {st.session_state.ad_balance:,.0f}")
+        else:
+            st.metric("Credit", "-")
+            st.caption("Click Load Live Data")
+    
     with col3:
         st.subheader("🔗 Connection")
         st.metric("Status", "🚀 PRODUCTION")
-
-    # Products table
-    if st.session_state.products:
-        st.divider()
-        st.subheader(f"📋 Products ({len(st.session_state.products)})")
-        
-        table_data = []
-        for p in st.session_state.products[:15]:
-            table_data.append({
-                "Name": p.get('item_name', 'N/A')[:30],
-                "Stock": p.get('stock', 0),
-                "Price": f"Rp {p.get('price', 0):,.0f}"
-            })
-        st.table(table_data)
+        st.caption(f"Shop ID: {SHOP_ID}")
+        if st.session_state.api_status:
+            st.write("API Status:")
+            for api, status in st.session_state.api_status.items():
+                st.caption(f"{api}: {status}")
 
 elif app_mode == "📢 Ads Manager":
     st.title("📢 Ads Manager")
-    st.info("Ads management features coming soon!")
+    st.info("Campaign management features coming soon!")
 
 st.divider()
-st.caption("PPMJ Platform | Production Mode")
+st.caption("PPMJ Platform | Payung Murah Jakarta | Production Mode")
