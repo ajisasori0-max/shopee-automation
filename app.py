@@ -61,13 +61,20 @@ def load_tokens():
     
     return None
 
-def generate_sign(partner_id, path, timestamp, partner_key):
-    base_string = f"{partner_id}{path}{timestamp}"
+def generate_sign(partner_id, path, timestamp, partner_key, access_token=None, shop_id=None):
+    """Generate HMAC-SHA256 signature."""
+    # For public APIs (auth): partner_id + path + timestamp
+    # For shop APIs: partner_id + path + timestamp + access_token + shop_id
+    if access_token and shop_id:
+        base_string = f"{partner_id}{path}{timestamp}{access_token}{shop_id}"
+    else:
+        base_string = f"{partner_id}{path}{timestamp}"
+    
     return hmac.new(partner_key.encode(), base_string.encode(), hashlib.sha256).hexdigest()
 
 def call_api(method, path, access_token, params=None, body=None):
     timestamp = int(time.time())
-    sign = generate_sign(PARTNER_ID, path, timestamp, PARTNER_KEY)
+    sign = generate_sign(PARTNER_ID, path, timestamp, PARTNER_KEY, access_token, SHOP_ID)
     
     url = f"{BASE_URL}{path}"
     query = {
