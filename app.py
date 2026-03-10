@@ -36,35 +36,84 @@ def load_tokens():
     except:
         return None
 
+def refresh_tokens():
+    """Refresh access token using refresh_token."""
+    tokens = load_tokens()
+    if not tokens or 'refresh_token' not in tokens:
+        return None
+    
+    try:
+        path = "/api/v2/auth/access_token/get"
+        timestamp = int(time.time())
+        sign = generate_sign(PARTNER_ID, path, timestamp, PARTNER_KEY)
+        
+        url = f"{BASE_URL}{path}"
+        params = {
+            "partner_id": PARTNER_ID,
+            "timestamp": timestamp,
+            "sign": sign
+        }
+        body = {
+            "refresh_token": tokens['refresh_token'],
+            "shop_id": SHOP_ID,
+            "partner_id": PARTNER_ID
+        }
+        
+        resp = requests.post(url, params=params, json=body)
+        data = resp.json()
+        
+        if 'access_token' in data:
+            # Save new tokens
+            with open('tokens_production.json', 'w') as f:
+                json.dump(data, f, indent=2)
+            return data
+        else:
+            return None
+    except:
+        return None
+
 def generate_sign(partner_id, path, timestamp, partner_key):
     base_string = f"{partner_id}{path}{timestamp}"
     return hmac.new(partner_key.encode(), base_string.encode(), hashlib.sha256).hexdigest()
 
 def call_api(method, path, access_token, params=None, body=None):
-    timestamp = int(time.time())
-    sign = generate_sign(PARTNER_ID, path, timestamp, PARTNER_KEY)
+    """Make API call with auto token refresh on auth failure."""
+    def _make_call(token):
+        timestamp = int(time.time())
+        sign = generate_sign(PARTNER_ID, path, timestamp, PARTNER_KEY)
+        
+        url = f"{BASE_URL}{path}"
+        query = {
+            "partner_id": PARTNER_ID,
+            "timestamp": timestamp,
+            "sign": sign,
+            "access_token": token,
+            "shop_id": SHOP_ID
+        }
+        if params:
+            query.update(params)
+        
+        headers = {"Content-Type": "application/json"}
+        
+        try:
+            if method == "GET":
+                r = requests.get(url, params=query, headers=headers, timeout=10)
+            else:
+                r = requests.post(url, params=query, json=body or {}, headers=headers, timeout=10)
+            return r.json()
+        except Exception as e:
+            return {"error": str(e)}
     
-    url = f"{BASE_URL}{path}"
-    query = {
-        "partner_id": PARTNER_ID,
-        "timestamp": timestamp,
-        "sign": sign,
-        "access_token": access_token,
-        "shop_id": SHOP_ID
-    }
-    if params:
-        query.update(params)
+    # First attempt
+    result = _make_call(access_token)
     
-    headers = {"Content-Type": "application/json"}
+    # If auth error, refresh and retry
+    if result.get('error') == 'error_auth' or 'Invalid access_token' in str(result.get('message', '')):
+        new_tokens = refresh_tokens()
+        if new_tokens:
+            result = _make_call(new_tokens['access_token'])
     
-    try:
-        if method == "GET":
-            r = requests.get(url, params=query, headers=headers, timeout=10)
-        else:
-            r = requests.post(url, params=query, json=body or {}, headers=headers, timeout=10)
-        return r.json()
-    except Exception as e:
-        return {"error": str(e)}
+    return result
 
 if app_mode == "🏪 Seller Dashboard":
     # =====================================
