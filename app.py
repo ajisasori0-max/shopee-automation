@@ -140,9 +140,15 @@ if app_mode == "🏪 Seller Dashboard":
             with st.spinner("Calling API..."):
                 # Test shop info
                 shop_result = call_api("GET", "/api/v2/shop/get_shop_info", tokens['access_token'])
-                st.sidebar.code(f"Shop result keys: {list(shop_result.keys())}")
+                st.sidebar.code(f"Shop result keys: {list(shop_result.keys())[:5]}")
                 
-                if 'response' in shop_result:
+                # Shopee API returns data directly or in 'response' key
+                if 'shop_name' in shop_result:
+                    # Data is directly in result
+                    st.session_state.shop_data = shop_result
+                    st.success(f"✅ Connected: {shop_result.get('shop_name', 'Unknown')}")
+                elif 'response' in shop_result:
+                    # Data is in response key
                     st.session_state.shop_data = shop_result['response']
                     st.success(f"✅ Connected: {shop_result['response'].get('shop_name', 'Unknown')}")
                 else:
@@ -151,17 +157,17 @@ if app_mode == "🏪 Seller Dashboard":
                 
                 # Get ad balance
                 ad_result = call_api("GET", "/api/v2/ads/get_total_balance", tokens['access_token'])
-                if 'response' in ad_result:
+                if 'total_balance' in ad_result:
+                    st.session_state.ad_balance = ad_result.get('total_balance', 0)
+                elif 'response' in ad_result:
                     st.session_state.ad_balance = ad_result['response'].get('total_balance', 0)
-                else:
-                    st.warning(f"Ad balance error: {ad_result.get('message', 'N/A')}")
                 
                 # Get products
                 prod_result = call_api("GET", "/api/v2/product/get_item_list", tokens['access_token'], {"page_size": 50})
-                if 'response' in prod_result and 'item_list' in prod_result['response']:
+                if 'item_list' in prod_result:
+                    st.session_state.products = prod_result.get('item_list', [])
+                elif 'response' in prod_result and 'item_list' in prod_result['response']:
                     st.session_state.products = prod_result['response']['item_list']
-                else:
-                    st.warning(f"Products error: {prod_result.get('message', 'N/A')}")
                 
                 st.rerun()
 
