@@ -245,13 +245,13 @@ class ShopeeClient:
 
 # ===== USAGE EXAMPLE =====
 if __name__ == "__main__":
-    # Initialize client
+    # Initialize client - PRODUCTION MODE
     client = ShopeeClient(
-        partner_id=1221616,
-        partner_key="shpk4d6149704f516949617a70434a416a5a476e5349705473684b596a664c6f",
-        shop_id=226682118,
-        tokens_file="tokens.json",
-        sandbox=True
+        partner_id=2030653,
+        partner_key="YOUR_LIVE_PARTNER_KEY",  # Get from Shopee Open Platform
+        shop_id=1147948100,
+        tokens_file="tokens_production.json",
+        sandbox=False  # PRODUCTION!
     )
     
     # Example: Get shop info

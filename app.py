@@ -89,11 +89,11 @@ if app_mode == "🏪 Seller Dashboard":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric("Environment", "🏗️ Sandbox", "Testing phase")
+        st.metric("Environment", "🚀 PRODUCTION", "Live Mode")
     with col2:
-        st.metric("Partner ID", "1221616")
+        st.metric("Partner ID", "2030653")
     with col3:
-        st.metric("Shop ID", "226682118")
+        st.metric("Shop ID", "1147948100")
 
 elif app_mode == "📢 Ads Manager":
     # =====================================
