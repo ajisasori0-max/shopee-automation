@@ -1,14 +1,10 @@
 {
-  "refresh_token": "455755547564714964686b686e636465",
-  "access_token": "597364707477545a764b4a4247464b56",
-  "expire_in": 14338,
-  "request_id": "e3e3e7f34ca9b44c779cef4ae497a700",
-  "merchant_id_list": [],
-  "shop_id_list": [
-    1147948100
-  ],
-  "supplier_id_list": [],
-  "user_id_list": [],
+  "partner_id": 2030653,
+  "refresh_token": "eyJhbGciOiJIUzI1NiJ9.CL34exABGMSYsaMEIAIo74fAzQYw2dbEiQk4AUAB.Wer1xFO3QsL1743b2yXRsVTopBbi1aSMlrBeu3C7KHw",
+  "access_token": "eyJhbGciOiJIUzI1NiJ9.CL34exABGMSYsaMEIAEo74fAzQYwj_O9wwQ4AUABSAc.6_pZrVF1s7JqX-tOeNmD3WZDKEErW3jG1labx9IvpQ4",
+  "expire_in": 14400,
+  "request_id": "e3e3e7f34caa08109449c54fd4c71a00",
   "error": "",
-  "message": ""
+  "message": "",
+  "shop_id": 1147948100
 }
