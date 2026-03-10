@@ -162,25 +162,31 @@ if app_mode == "🏪 Seller Dashboard":
                 elif 'response' in ad_result:
                     st.session_state.ad_balance = ad_result['response'].get('total_balance', 0)
                 
-                # Get products
+                # Get products - FORCE DEBUG OUTPUT
+                st.sidebar.markdown("---")
+                st.sidebar.subheader("🔍 Product API Debug")
+                
                 prod_result = call_api("GET", "/api/v2/product/get_item_list", tokens['access_token'], {"page_size": 50})
-                st.sidebar.code(f"Product keys: {list(prod_result.keys())[:10]}")
                 
-                # Debug: show first 200 chars of result
+                # FORCE display of raw result
                 import json as _json
-                st.sidebar.code(f"Preview: {_json.dumps(prod_result, indent=2)[:300]}...")
+                result_str = _json.dumps(prod_result, indent=2)
+                st.sidebar.text_area("Raw API Response", result_str[:800], height=200)
                 
-                if 'item_list' in prod_result:
+                if 'error' in prod_result:
+                    st.sidebar.error(f"❌ Product API Error: {prod_result.get('message', 'Unknown')}")
+                elif 'item_list' in prod_result:
                     st.session_state.products = prod_result.get('item_list', [])
-                    st.sidebar.success(f"✅ {len(st.session_state.products)} products")
-                elif 'response' in prod_result and 'item_list' in prod_result['response']:
-                    st.session_state.products = prod_result['response']['item_list']
-                    st.sidebar.success(f"✅ {len(st.session_state.products)} products")
-                elif 'items' in prod_result:
-                    st.session_state.products = prod_result.get('items', [])
-                    st.sidebar.success(f"✅ {len(st.session_state.products)} products")
+                    st.sidebar.success(f"✅ {len(st.session_state.products)} products found")
+                elif 'response' in prod_result:
+                    resp = prod_result['response']
+                    if 'item_list' in resp:
+                        st.session_state.products = resp['item_list']
+                        st.sidebar.success(f"✅ {len(st.session_state.products)} products found")
+                    else:
+                        st.sidebar.warning(f"'response' exists but no 'item_list'. Keys: {list(resp.keys())}")
                 else:
-                    st.sidebar.warning(f"No products found. Keys: {list(prod_result.keys())}")
+                    st.sidebar.warning(f"⚠️ Unexpected format. Keys: {list(prod_result.keys())}")
                 
                 st.rerun()
 
