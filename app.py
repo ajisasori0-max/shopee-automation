@@ -164,10 +164,23 @@ if app_mode == "🏪 Seller Dashboard":
                 
                 # Get products
                 prod_result = call_api("GET", "/api/v2/product/get_item_list", tokens['access_token'], {"page_size": 50})
+                st.sidebar.code(f"Product keys: {list(prod_result.keys())[:10]}")
+                
+                # Debug: show first 200 chars of result
+                import json as _json
+                st.sidebar.code(f"Preview: {_json.dumps(prod_result, indent=2)[:300]}...")
+                
                 if 'item_list' in prod_result:
                     st.session_state.products = prod_result.get('item_list', [])
+                    st.sidebar.success(f"✅ {len(st.session_state.products)} products")
                 elif 'response' in prod_result and 'item_list' in prod_result['response']:
                     st.session_state.products = prod_result['response']['item_list']
+                    st.sidebar.success(f"✅ {len(st.session_state.products)} products")
+                elif 'items' in prod_result:
+                    st.session_state.products = prod_result.get('items', [])
+                    st.sidebar.success(f"✅ {len(st.session_state.products)} products")
+                else:
+                    st.sidebar.warning(f"No products found. Keys: {list(prod_result.keys())}")
                 
                 st.rerun()
 
