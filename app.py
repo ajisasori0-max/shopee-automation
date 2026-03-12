@@ -352,8 +352,7 @@ elif app_mode == "📢 Ads Manager":
             with st.container():
                 cols = st.columns([3, 2, 2, 2, 1])
                 status_emoji = "🟢" if camp['status'] == "ACTIVE" else "🔴"
-                cols[0].write(f"**{camp['name']}**  
-{camp['type']}")
+                cols[0].write(f"**{camp['name']}** | {camp['type']}")
                 cols[1].write(f"{status_emoji} {camp['status']}")
                 cols[2].write(f"Rp {camp['budget']:,}/day")
                 cols[3].write(f"ROAS: {camp['roas']}x" if camp['roas'] > 0 else "-")
