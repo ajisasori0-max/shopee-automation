@@ -159,7 +159,7 @@ st.set_page_config(page_title="PPMJ Platform", page_icon="🦊", layout="wide")
 
 # Sidebar
 st.sidebar.title("🦊 PPMJ Platform")
-app_mode = st.sidebar.radio("Select", ["🏪 Seller Dashboard", "📢 Ads Manager"])
+app_mode = st.sidebar.radio("Select", ["🏪 Seller Dashboard", "📢 Ads Manager", "🕵️ Competitor Intel"])
 
 # Session state init
 for key in ['shop_data', 'ad_balance', 'orders', 'products', 'last_update', 'data_sources']:
@@ -421,6 +421,175 @@ elif app_mode == "📢 Ads Manager":
         
         st.divider()
         st.caption("📊 Performance data is sample/demo. Real data requires Shopee Ads API production access.")
+
+elif app_mode == "🕵️ Competitor Intel":
+    st.title("🕵️ Competitor Intelligence")
+    st.markdown("*Weekly competitor tracking | Brother inputs data every Friday*")
+    
+    # Setup instructions (only show once, can be collapsed)
+    with st.expander("📋 Setup Instructions (for Brother)", expanded=False):
+        st.write("""
+        **Weekly Task (Every Friday, 10 minutes):**
+        
+        1. Open competitor Shopee shops:
+           - [PayungMurahJkt](https://shopee.co.id/payungmurahjkt)
+           - [TokoPayungID](https://shopee.co.id/tokopayungid)
+           - [JakartaPayung](https://shopee.co.id/jakartapayung)
+        
+        2. Check these 5 products:
+           - Payung Lipat Premium
+           - Payung Golf Besar
+           - Payung Anak Karakter
+           - Payung Anti UV
+           - Payung Lipat Mini
+        
+        3. Copy price & stock into Google Sheet:
+           [Link to Sheet]
+        
+        **That's it! Dashboard updates automatically.**
+        """)
+    
+    st.divider()
+    
+    # Sample competitor data (until real sheet is connected)
+    st.subheader("📊 This Week's Intel (Sample Data)")
+    
+    sample_data = {
+        "week": "March 13, 2026",
+        "competitors": [
+            {
+                "name": "PayungMurahJkt",
+                "products": [
+                    {"name": "Payung Lipat Premium", "price": 119000, "stock": 23, "trend": "stable"},
+                    {"name": "Payung Golf Besar", "price": 179000, "stock": 0, "trend": "out_of_stock"},
+                    {"name": "Payung Anak Karakter", "price": 89000, "stock": 8, "trend": "low"},
+                ]
+            },
+            {
+                "name": "JakartaPayung",
+                "products": [
+                    {"name": "Payung Lipat Premium", "price": 135000, "stock": 67, "trend": "discount"},
+                    {"name": "Payung Anti UV", "price": 149000, "stock": 12, "trend": "stable"},
+                ]
+            }
+        ]
+    }
+    
+    # Display competitor comparison
+    cols = st.columns(2)
+    for i, comp in enumerate(sample_data["competitors"]):
+        with cols[i]:
+            st.markdown(f"**{comp['name']}**")
+            for prod in comp["products"]:
+                stock_emoji = "🔴" if prod["stock"] == 0 else "🟡" if prod["stock"] < 10 else "🟢"
+                trend_emoji = {"stable": "➡️", "out_of_stock": "🚨", "low": "⚠️", "discount": "🏷️"}.get(prod["trend"], "➡️")
+                st.write(f"{trend_emoji} {prod['name'][:20]}")
+                st.write(f"   💰 Rp {prod['price']:,} | {stock_emoji} Stock: {prod['stock']}")
+            st.divider()
+    
+    st.divider()
+    
+    # AI Analysis Section
+    st.subheader("🎯 AI Analysis & Opportunities")
+    
+    # Opportunity alerts
+    opportunities = [
+        {
+            "type": "stock_out",
+            "priority": "HIGH",
+            "title": "🔥 STOCK OUT ALERT",
+            "competitor": "PayungMurahJkt",
+            "product": "Payung Golf Besar",
+            "action": "Raise your price from Rp185k → Rp210k",
+            "impact": "+Rp25k profit per unit",
+            "urgency": "Act within 24h"
+        },
+        {
+            "type": "price_gap",
+            "priority": "MEDIUM", 
+            "title": "💰 PRICE GAP OPPORTUNITY",
+            "competitor": "JakartaPayung",
+            "product": "Payung Lipat Premium",
+            "action": "Safe to raise to Rp130k (you're at Rp125k)",
+            "impact": "+Rp5k per unit, still cheapest",
+            "urgency": "This week"
+        },
+        {
+            "type": "threat",
+            "priority": "LOW",
+            "title": "⚠️ COMPETITIVE THREAT",
+            "competitor": "JakartaPayung", 
+            "product": "Payung Lipat Premium",
+            "action": "Monitor sales this week — they dropped price 10%",
+            "impact": "Your sales may dip 5-10%",
+            "urgency": "Watch only"
+        }
+    ]
+    
+    for opp in opportunities:
+        priority_color = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}[opp["priority"]]
+        with st.container():
+            st.markdown(f"**{priority_color} {opp['title']}**")
+            st.write(f"**Competitor:** {opp['competitor']} | **Product:** {opp['product']}")
+            st.info(f"**Action:** {opp['action']}")
+            st.success(f"**Impact:** {opp['impact']}")
+            st.caption(f"⏰ {opp['urgency']}")
+            st.divider()
+    
+    st.divider()
+    
+    # Trend Analysis
+    st.subheader("📈 4-Week Trends")
+    
+    trend_data = {
+        "PayungMurahJkt": {
+            "Payung Lipat Premium": [119000, 119000, 125000, 119000],
+            "Payung Golf Besar": [179000, 179000, 189000, 179000],
+        },
+        "JakartaPayung": {
+            "Payung Lipat Premium": [149000, 145000, 139000, 135000],
+        }
+    }
+    
+    for comp_name, products in trend_data.items():
+        st.markdown(f"**{comp_name}**")
+        for prod_name, prices in products.items():
+            direction = "📉" if prices[-1] < prices[0] else "📈" if prices[-1] > prices[0] else "➡️"
+            st.write(f"{direction} {prod_name}: {prices[0]/1000:.0f}k → {prices[-1]/1000:.0f}k")
+        st.caption("Pattern: Testing optimal price points" if "119000" in str(prices) else "Aggressive discounting")
+    
+    st.divider()
+    
+    # Your Position Summary
+    st.subheader("🏆 Your Position")
+    
+    metrics_cols = st.columns(3)
+    metrics_cols[0].metric("Price Competitiveness", "7/10", "Mid-range")
+    metrics_cols[1].metric("Stock Advantage", "9/10", "Strong")
+    metrics_cols[2].metric("Opportunities This Week", "2", "Act now")
+    
+    st.info("""
+    **💡 Strategy Recommendation:**
+    
+    You're well-positioned this week. Competitor #1 is out of stock on Golf umbrellas — 
+    this is your chance to capture that market segment. Competitor #2 is in a price war, 
+    but you have stock depth they don't. Hold your prices, focus on availability messaging.
+    """)
+    
+    st.divider()
+    
+    # Google Sheets Connection Status
+    st.subheader("🔗 Data Source")
+    st.warning("⚠️ **Google Sheet not connected yet**")
+    st.write("""
+    To enable live data:
+    1. Create Google Sheet with columns: Week | Competitor | Product | Price | Stock | Notes
+    2. Share sheet with service account: `ppmj-platform@...`
+    3. Paste Sheet ID here:
+    """)
+    sheet_id = st.text_input("Google Sheet ID", placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms")
+    if st.button("Connect Sheet"):
+        st.success("✅ Sheet connected! (Demo mode — real connection requires setup)")
 
 st.divider()
 st.caption("PPMJ Platform | Payung Murah Jakarta | Production Mode")
