@@ -142,18 +142,35 @@ def get_orders(tokens):
     return {'success': False, 'error': data.get('error', data.get('message', 'No data'))}
 
 def get_products(tokens):
-    """Get products - BLOCKED BY SHOPEE (permission issue)."""
-    data = call_api("/api/v2/product/get_item_list", tokens['access_token'], {"page_size": 50})
+    """Get products - NOW WORKING with item_status parameter!"""
+    # CRITICAL: item_status is REQUIRED parameter
+    data = call_api("/api/v2/product/get_item_list", tokens['access_token'], 
+                   {"page_size": 50, "item_status": "NORMAL"})
     
     items = None
-    if 'item_list' in data:
+    if 'response' in data and 'item' in data['response']:
+        items = data['response']['item']
+    elif 'item_list' in data:
         items = data['item_list']
-    elif 'response' in data and 'item_list' in data['response']:
-        items = data['response']['item_list']
     
     if items:
         return {'success': True, 'data': items}
-    return {'success': False, 'error': data.get('error', 'No data'), 'blocked': data.get('error') == 'product.error_unknown'}
+    return {'success': False, 'error': data.get('error', 'No data')}
+
+def get_product_details(tokens, item_ids):
+    """Get detailed product info including price, stock, name."""
+    # item_id_list should be comma-separated string
+    if isinstance(item_ids, list):
+        item_id_str = ','.join([str(i) for i in item_ids])
+    else:
+        item_id_str = str(item_ids)
+    
+    data = call_api("/api/v2/product/get_item_base_info", tokens['access_token'], 
+                   {"item_id_list": item_id_str})
+    
+    if 'response' in data and 'item_list' in data['response']:
+        return {'success': True, 'data': data['response']['item_list']}
+    return {'success': False, 'error': data.get('error', 'No data')}
 
 # ============================================================================
 # STREAMLIT UI
@@ -204,17 +221,14 @@ if st.sidebar.button("🚀 Load Live Data"):
                 st.session_state.orders = []
                 st.session_state.data_sources['orders'] = f"⚠️ {orders_result.get('error', 'No data')}"
             
-            # Products (will fail - Shopee permission)
+            # Products (NOW WORKING!)
             prod_result = get_products(tokens)
             if prod_result['success']:
                 st.session_state.products = prod_result['data']
                 st.session_state.data_sources['products'] = f"✅ LIVE ({len(prod_result['data'])} items)"
             else:
                 st.session_state.products = MOCK_PRODUCTS
-                if prod_result.get('blocked'):
-                    st.session_state.data_sources['products'] = '⚠️ MOCK (Shopee permission required)'
-                else:
-                    st.session_state.data_sources['products'] = f"⚠️ MOCK ({prod_result.get('error', 'Error')})"
+                st.session_state.data_sources['products'] = f"⚠️ MOCK ({prod_result.get('error', 'Error')})"
             
             st.session_state.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             st.rerun()
@@ -282,15 +296,32 @@ if app_mode == "🏪 Seller Dashboard":
     source = st.session_state.data_sources.get('products', 'MOCK')
     is_live = 'LIVE' in source
     
-    cols = st.columns(2)
-    for i, p in enumerate(display_products[:4]):
-        with cols[i % 2]:
-            stock = p.get('stock', 0)
-            price = p.get('price', 0)
-            st.metric(p['item_name'][:25], f"Rp {price:,}", f"Stock: {stock}")
-    
-    if not is_live:
-        st.info("⚠️ **Product data is mock/sample** — Shopee Product API permission pending")
+    if is_live:
+        # LIVE DATA: Show product IDs table with fetch option
+        st.success("🟢 **Live Product Data from Shopee**")
+        
+        product_data = []
+        for p in display_products[:10]:  # Show first 10
+            product_data.append({
+                'Item ID': p.get('item_id', 'N/A'),
+                'Status': p.get('item_status', 'N/A'),
+                'Last Updated': datetime.fromtimestamp(p.get('update_time', 0)).strftime('%Y-%m-%d') if p.get('update_time') else 'N/A'
+            })
+        
+        st.dataframe(product_data, use_container_width=True)
+        
+        # Show item IDs for reference
+        item_ids = [p.get('item_id') for p in display_products if p.get('item_id')]
+        st.caption(f"🆔 Active Item IDs: {', '.join([str(i) for i in item_ids])}")
+        
+    else:
+        # MOCK DATA: Show sample products
+        cols = st.columns(2)
+        for i, p in enumerate(display_products[:4]):
+            with cols[i % 2]:
+                stock = p.get('stock', 0)
+                price = p.get('price', 0)
+                st.metric(p['item_name'][:25], f"Rp {price:,}", f"Stock: {stock}")
     
     st.divider()
     
@@ -303,22 +334,6 @@ if app_mode == "🏪 Seller Dashboard":
             st.write(f"{emoji} **{api.title()}**: {status}")
     else:
         st.info("Click 'Load Live Data' to see data source status")
-    
-    # SHOPEE SUPPORT INFO
-    if st.session_state.data_sources.get('products', '').startswith('⚠️ MOCK'):
-        st.divider()
-        st.warning("""
-        **📧 Contact Shopee for Product API Access:**
-        
-        Subject: "Product API Access Request - Partner ID 2030653"
-        
-        Partner ID: 2030653
-        Shop ID: 1147948100
-        Error: product.error_unknown
-        Endpoint: /api/v2/product/get_item_list
-        
-        Shop Info and Order APIs work correctly.
-        """)
 
 elif app_mode == "📢 Ads Manager":
     st.title("📢 PPMJ Ads Manager")
