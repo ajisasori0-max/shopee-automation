@@ -15,7 +15,7 @@ PARTNER_KEY = "shpk44444e634d6668466c5073776b45646454774a7975706d47497063526453"
 BASE_URL = "https://partner.shopeemobile.com"
 
 # App version
-APP_VERSION = "1.2.1"
+APP_VERSION = "1.2.6"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
