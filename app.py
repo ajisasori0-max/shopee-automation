@@ -15,7 +15,7 @@ PARTNER_KEY = "shpk44444e634d6668466c5073776b45646454774a7975706d47497063526453"
 BASE_URL = "https://partner.shopeemobile.com"
 
 # App version
-APP_VERSION = "1.3.1"
+APP_VERSION = "1.3.2"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -175,6 +175,24 @@ def get_product_names(tokens, item_ids):
             names[item['item_id']] = item.get('item_name', 'Unknown')
     return names
 
+def get_product_price_stock(tokens, item_id):
+    """Get price and stock from model_list API."""
+    data = call_api("/api/v2/product/get_model_list", tokens['access_token'],
+                   {"item_id": item_id})
+    
+    if 'response' in data and 'model' in data['response']:
+        # Get first model's price and stock
+        model = data['response']['model'][0]
+        price_info = model.get('price_info', [{}])[0]
+        stock_info = model.get('stock_info_v2', {}).get('summary_info', {})
+        
+        return {
+            'price': price_info.get('original_price', 0),
+            'current_price': price_info.get('current_price', 0),
+            'stock': stock_info.get('total_available_stock', 0)
+        }
+    return {'price': 0, 'current_price': 0, 'stock': 0}
+
 def get_product_details(tokens, item_ids):
     """Get detailed product info including price, stock, name."""
     # item_id_list should be comma-separated string
@@ -247,19 +265,26 @@ if st.sidebar.button("🚀 Load Live Data"):
                 st.sidebar.warning(f"DEBUG Product API: {prod_result.get('error', 'Unknown')}")
             
             if prod_result['success']:
-                # Get product names for display
+                # Get product details (name, price, stock)
                 item_ids = [p.get('item_id') for p in prod_result['data'] if p.get('item_id')]
                 product_names = get_product_names(tokens, item_ids)
                 
-                # Merge names with product data
+                # Get price/stock for first 3 products (to avoid rate limits)
+                price_stock_data = {}
+                for item_id in item_ids[:3]:
+                    price_stock_data[item_id] = get_product_price_stock(tokens, item_id)
+                
+                # Merge all data
                 enriched_products = []
                 for p in prod_result['data']:
                     item_id = p.get('item_id')
+                    ps_data = price_stock_data.get(item_id, {})
                     enriched_products.append({
                         'item_id': item_id,
                         'item_name': product_names.get(item_id, f'Product {item_id}'),
                         'item_status': p.get('item_status', 'NORMAL'),
-                        'update_time': p.get('update_time', 0)
+                        'price': ps_data.get('price', 0),
+                        'stock': ps_data.get('stock', 0)
                     })
                 
                 st.session_state.products = enriched_products
@@ -335,22 +360,28 @@ if app_mode == "🏪 Seller Dashboard":
     is_live = 'LIVE' in source
     
     if is_live:
-        # LIVE DATA: Show product names table
+        # LIVE DATA: Show product names with price/stock
         st.success("🟢 **Live Product Data from Shopee**")
         
-        product_data = []
-        for p in display_products[:10]:  # Show first 10
-            product_data.append({
-                'Product Name': p.get('item_name', 'Unknown')[:40] + '...' if len(p.get('item_name', '')) > 40 else p.get('item_name', 'Unknown'),
-                'Item ID': p.get('item_id', 'N/A'),
-                'Status': p.get('item_status', 'N/A')
-            })
+        for p in display_products[:5]:  # Show first 5
+            col1, col2, col3 = st.columns([3, 1, 1])
+            with col1:
+                st.write(f"**{p.get('item_name', 'Unknown')[:35]}...**")
+            with col2:
+                price = p.get('price', 0)
+                if price > 0:
+                    st.write(f"Rp {int(price):,}")
+                else:
+                    st.write("-")
+            with col3:
+                stock = p.get('stock', 0)
+                if stock > 0:
+                    st.write(f"Stock: {stock}")
+                else:
+                    st.write("Stock: -")
         
-        st.dataframe(product_data, use_container_width=True)
-        
-        # Show item IDs for reference
-        item_ids = [p.get('item_id') for p in display_products if p.get('item_id')]
-        st.caption(f"🆔 {len(item_ids)} Active Products")
+        if len(display_products) > 5:
+            st.caption(f"... and {len(display_products) - 5} more products")
         
     else:
         # MOCK DATA: Show sample products
