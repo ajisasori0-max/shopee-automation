@@ -15,7 +15,7 @@ PARTNER_KEY = "shpk44444e634d6668466c5073776b45646454774a7975706d47497063526453"
 BASE_URL = "https://partner.shopeemobile.com"
 
 # App version
-APP_VERSION = "1.3.2"
+APP_VERSION = "1.3.3"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -181,17 +181,34 @@ def get_product_price_stock(tokens, item_id):
                    {"item_id": item_id})
     
     if 'response' in data and 'model' in data['response']:
-        # Get first model's price and stock
-        model = data['response']['model'][0]
-        price_info = model.get('price_info', [{}])[0]
-        stock_info = model.get('stock_info_v2', {}).get('summary_info', {})
+        models = data['response']['model']
+        variations = data['response'].get('tier_variation', [])
+        
+        # Get all variants
+        variants = []
+        for model in models:
+            price_info = model.get('price_info', [{}])[0]
+            stock_info = model.get('stock_info_v2', {}).get('summary_info', {})
+            
+            variants.append({
+                'model_name': model.get('model_name', 'Default'),
+                'price': price_info.get('original_price', 0),
+                'current_price': price_info.get('current_price', 0),
+                'stock': stock_info.get('total_available_stock', 0),
+                'model_id': model.get('model_id')
+            })
+        
+        # Get main product price/stock (first variant)
+        first = variants[0] if variants else {'price': 0, 'stock': 0}
         
         return {
-            'price': price_info.get('original_price', 0),
-            'current_price': price_info.get('current_price', 0),
-            'stock': stock_info.get('total_available_stock', 0)
+            'price': first['price'],
+            'current_price': first['current_price'],
+            'stock': first['stock'],
+            'variants': variants,
+            'variation_name': variations[0].get('name', 'Variant') if variations else 'Variant'
         }
-    return {'price': 0, 'current_price': 0, 'stock': 0}
+    return {'price': 0, 'current_price': 0, 'stock': 0, 'variants': [], 'variation_name': 'Variant'}
 
 def get_product_details(tokens, item_ids):
     """Get detailed product info including price, stock, name."""
@@ -265,13 +282,13 @@ if st.sidebar.button("🚀 Load Live Data"):
                 st.sidebar.warning(f"DEBUG Product API: {prod_result.get('error', 'Unknown')}")
             
             if prod_result['success']:
-                # Get product details (name, price, stock)
+                # Get product details (name, price, stock) for ALL products
                 item_ids = [p.get('item_id') for p in prod_result['data'] if p.get('item_id')]
                 product_names = get_product_names(tokens, item_ids)
                 
-                # Get price/stock for first 3 products (to avoid rate limits)
+                # Get price/stock for ALL products
                 price_stock_data = {}
-                for item_id in item_ids[:3]:
+                for item_id in item_ids:
                     price_stock_data[item_id] = get_product_price_stock(tokens, item_id)
                 
                 # Merge all data
@@ -284,7 +301,10 @@ if st.sidebar.button("🚀 Load Live Data"):
                         'item_name': product_names.get(item_id, f'Product {item_id}'),
                         'item_status': p.get('item_status', 'NORMAL'),
                         'price': ps_data.get('price', 0),
-                        'stock': ps_data.get('stock', 0)
+                        'current_price': ps_data.get('current_price', 0),
+                        'stock': ps_data.get('stock', 0),
+                        'variants': ps_data.get('variants', []),
+                        'variation_name': ps_data.get('variation_name', 'Variant')
                     })
                 
                 st.session_state.products = enriched_products
@@ -360,13 +380,14 @@ if app_mode == "🏪 Seller Dashboard":
     is_live = 'LIVE' in source
     
     if is_live:
-        # LIVE DATA: Show product names with price/stock
+        # LIVE DATA: Show product names with price/stock and variant dropdowns
         st.success("🟢 **Live Product Data from Shopee**")
         
-        for p in display_products[:5]:  # Show first 5
+        for p in display_products:
+            # Product header
             col1, col2, col3 = st.columns([3, 1, 1])
             with col1:
-                st.write(f"**{p.get('item_name', 'Unknown')[:35]}...**")
+                st.write(f"**{p.get('item_name', 'Unknown')[:40]}...**")
             with col2:
                 price = p.get('price', 0)
                 if price > 0:
@@ -379,9 +400,24 @@ if app_mode == "🏪 Seller Dashboard":
                     st.write(f"Stock: {stock}")
                 else:
                     st.write("Stock: -")
-        
-        if len(display_products) > 5:
-            st.caption(f"... and {len(display_products) - 5} more products")
+            
+            # Variant dropdown
+            variants = p.get('variants', [])
+            if len(variants) > 1:
+                variation_name = p.get('variation_name', 'Variant')
+                with st.expander(f"📋 View {len(variants)} {variation_name} Options"):
+                    for v in variants:
+                        vcol1, vcol2, vcol3 = st.columns([2, 1, 1])
+                        with vcol1:
+                            st.write(f"  • {v.get('model_name', 'Default')}")
+                        with vcol2:
+                            vprice = v.get('price', 0)
+                            st.write(f"Rp {int(vprice):,}" if vprice > 0 else "-")
+                        with vcol3:
+                            vstock = v.get('stock', 0)
+                            st.write(f"Stock: {vstock}" if vstock > 0 else "Out of stock")
+            
+            st.divider()
         
     else:
         # MOCK DATA: Show sample products
