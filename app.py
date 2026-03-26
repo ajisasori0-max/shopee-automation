@@ -96,16 +96,7 @@ def get_valid_tokens():
 def call_api(path, access_token, params=None):
     """Make API call with proper signature."""
     ts = int(time.time())
-    
-    # Build base string: partner_id + path + timestamp + access_token + shop_id + params
     base = f"{PARTNER_ID}{path}{ts}{access_token}{SHOP_ID}"
-    
-    # Add params to base string in alphabetical order (Shopee requirement)
-    if params:
-        sorted_params = sorted(params.items())
-        for key, value in sorted_params:
-            base += f"{key}{value}"
-    
     sign = hmac.new(PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
     
     url = f"{BASE_URL}{path}"
@@ -114,7 +105,7 @@ def call_api(path, access_token, params=None):
         query.update(params)
     
     try:
-        resp = requests.get(url, params=query, headers={"Content-Type": "application/json"}, timeout=10)
+        resp = requests.get(url, params=query, timeout=10)
         return resp.json()
     except Exception as e:
         return {"error": str(e)}
