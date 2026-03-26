@@ -15,7 +15,7 @@ PARTNER_KEY = "shpk44444e634d6668466c5073776b45646454774a7975706d47497063526453"
 BASE_URL = "https://partner.shopeemobile.com"
 
 # App version
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.3.1"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -158,6 +158,23 @@ def get_products(tokens):
         return {'success': True, 'data': items}
     return {'success': False, 'error': data.get('error', 'No data')}
 
+def get_product_names(tokens, item_ids):
+    """Get product names from item_base_info API."""
+    if not item_ids:
+        return {}
+    
+    # Max 50 items per call
+    item_id_str = ','.join([str(i) for i in item_ids[:50]])
+    
+    data = call_api("/api/v2/product/get_item_base_info", tokens['access_token'],
+                   {"item_id_list": item_id_str})
+    
+    names = {}
+    if 'response' in data and 'item_list' in data['response']:
+        for item in data['response']['item_list']:
+            names[item['item_id']] = item.get('item_name', 'Unknown')
+    return names
+
 def get_product_details(tokens, item_ids):
     """Get detailed product info including price, stock, name."""
     # item_id_list should be comma-separated string
@@ -230,7 +247,22 @@ if st.sidebar.button("🚀 Load Live Data"):
                 st.sidebar.warning(f"DEBUG Product API: {prod_result.get('error', 'Unknown')}")
             
             if prod_result['success']:
-                st.session_state.products = prod_result['data']
+                # Get product names for display
+                item_ids = [p.get('item_id') for p in prod_result['data'] if p.get('item_id')]
+                product_names = get_product_names(tokens, item_ids)
+                
+                # Merge names with product data
+                enriched_products = []
+                for p in prod_result['data']:
+                    item_id = p.get('item_id')
+                    enriched_products.append({
+                        'item_id': item_id,
+                        'item_name': product_names.get(item_id, f'Product {item_id}'),
+                        'item_status': p.get('item_status', 'NORMAL'),
+                        'update_time': p.get('update_time', 0)
+                    })
+                
+                st.session_state.products = enriched_products
                 st.session_state.data_sources['products'] = f"✅ LIVE ({len(prod_result['data'])} items)"
             else:
                 st.session_state.products = MOCK_PRODUCTS
@@ -303,22 +335,22 @@ if app_mode == "🏪 Seller Dashboard":
     is_live = 'LIVE' in source
     
     if is_live:
-        # LIVE DATA: Show product IDs table with fetch option
+        # LIVE DATA: Show product names table
         st.success("🟢 **Live Product Data from Shopee**")
         
         product_data = []
         for p in display_products[:10]:  # Show first 10
             product_data.append({
+                'Product Name': p.get('item_name', 'Unknown')[:40] + '...' if len(p.get('item_name', '')) > 40 else p.get('item_name', 'Unknown'),
                 'Item ID': p.get('item_id', 'N/A'),
-                'Status': p.get('item_status', 'N/A'),
-                'Last Updated': datetime.fromtimestamp(p.get('update_time', 0)).strftime('%Y-%m-%d') if p.get('update_time') else 'N/A'
+                'Status': p.get('item_status', 'N/A')
             })
         
         st.dataframe(product_data, use_container_width=True)
         
         # Show item IDs for reference
         item_ids = [p.get('item_id') for p in display_products if p.get('item_id')]
-        st.caption(f"🆔 Active Item IDs: {', '.join([str(i) for i in item_ids])}")
+        st.caption(f"🆔 {len(item_ids)} Active Products")
         
     else:
         # MOCK DATA: Show sample products
