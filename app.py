@@ -223,6 +223,11 @@ if st.sidebar.button("🚀 Load Live Data"):
             
             # Products (NOW WORKING!)
             prod_result = get_products(tokens)
+            
+            # DEBUG: Show actual result
+            if not prod_result['success']:
+                st.sidebar.warning(f"DEBUG Product API: {prod_result.get('error', 'Unknown')}")
+            
             if prod_result['success']:
                 st.session_state.products = prod_result['data']
                 st.session_state.data_sources['products'] = f"✅ LIVE ({len(prod_result['data'])} items)"
