@@ -15,7 +15,7 @@ PARTNER_KEY = "shpk44444e634d6668466c5073776b45646454774a7975706d47497063526453"
 BASE_URL = "https://partner.shopeemobile.com"
 
 # App version
-APP_VERSION = "1.3.3"
+APP_VERSION = "1.4.0"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -225,6 +225,35 @@ def get_product_details(tokens, item_ids):
         return {'success': True, 'data': data['response']['item_list']}
     return {'success': False, 'error': data.get('error', 'No data')}
 
+# ===== ADS APIs =====
+
+def get_ad_campaigns(tokens):
+    """Get all ad campaigns."""
+    data = call_api("/api/v2/ads/get_cpc_ad_list", tokens['access_token'])
+    
+    if 'response' in data and 'data' in data['response']:
+        return {'success': True, 'data': data['response']['data']}
+    return {'success': False, 'error': data.get('error', 'No data')}
+
+def get_ad_performance(tokens, campaign_ids=None):
+    """Get ad performance data."""
+    # Default to last 7 days
+    start_time = int((datetime.now() - timedelta(days=7)).timestamp())
+    end_time = int(datetime.now().timestamp())
+    
+    params = {
+        'start_time': start_time,
+        'end_time': end_time
+    }
+    if campaign_ids:
+        params['campaign_id_list'] = ','.join([str(i) for i in campaign_ids])
+    
+    data = call_api("/api/v2/ads/get_total_ad_performance", tokens['access_token'], params)
+    
+    if 'response' in data:
+        return {'success': True, 'data': data['response']}
+    return {'success': False, 'error': data.get('error', 'No data')}
+
 # ============================================================================
 # STREAMLIT UI
 # ============================================================================
@@ -235,7 +264,7 @@ st.sidebar.title("🦊 PPMJ Platform")
 app_mode = st.sidebar.radio("Select", ["🏪 Seller Dashboard", "📢 Ads Manager", "🕵️ Competitor Intel"])
 
 # Session state init
-for key in ['shop_data', 'ad_balance', 'orders', 'products', 'last_update', 'data_sources']:
+for key in ['shop_data', 'ad_balance', 'orders', 'products', 'ad_campaigns', 'last_update', 'data_sources']:
     if key not in st.session_state:
         st.session_state[key] = None if key != 'data_sources' else {}
 
@@ -312,6 +341,15 @@ if st.sidebar.button("🚀 Load Live Data"):
             else:
                 st.session_state.products = MOCK_PRODUCTS
                 st.session_state.data_sources['products'] = f"⚠️ MOCK ({prod_result.get('error', 'Error')})"
+            
+            # Ad Campaigns (NEW!)
+            campaigns_result = get_ad_campaigns(tokens)
+            if campaigns_result['success']:
+                st.session_state.ad_campaigns = campaigns_result['data']
+                st.session_state.data_sources['ad_campaigns'] = f"✅ LIVE ({len(campaigns_result['data'])} campaigns)"
+            else:
+                st.session_state.ad_campaigns = []
+                st.session_state.data_sources['ad_campaigns'] = f"⚠️ MOCK ({campaigns_result.get('error', 'No data')})"
             
             st.session_state.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             st.rerun()
@@ -481,23 +519,44 @@ elif app_mode == "📢 Ads Manager":
     with ad_tabs[0]:
         st.subheader("Active Campaigns")
         
-        campaigns = [
-            {"name": "Flash Sale March", "status": "ACTIVE", "budget": 100000, "spend": 87500, "roas": 3.2, "type": "GMV Max"},
-            {"name": "New Arrival Boost", "status": "PAUSED", "budget": 50000, "spend": 0, "roas": 0, "type": "Manual"},
-            {"name": "Auto GMV Max", "status": "ACTIVE", "budget": 150000, "spend": 142000, "roas": 2.1, "type": "GMV Max"},
-        ]
+        # Get real campaigns from session state
+        campaigns = st.session_state.ad_campaigns if st.session_state.ad_campaigns else []
         
-        for camp in campaigns:
-            with st.container():
-                cols = st.columns([3, 2, 2, 2, 1])
-                status_emoji = "🟢" if camp['status'] == "ACTIVE" else "🔴"
-                cols[0].write(f"**{camp['name']}** | {camp['type']}")
-                cols[1].write(f"{status_emoji} {camp['status']}")
-                cols[2].write(f"Rp {camp['budget']:,}/day")
-                cols[3].write(f"ROAS: {camp['roas']}x" if camp['roas'] > 0 else "-")
-                cols[4].button("⚙️", key=f"settings_{camp['name']}")
-                st.progress(min(camp['spend'] / camp['budget'], 1.0), text=f"Spend: Rp {camp['spend']:,} / Rp {camp['budget']:,}")
-                st.divider()
+        if campaigns:
+            for camp in campaigns:
+                with st.container():
+                    camp_id = camp.get('campaign_id', 'N/A')
+                    camp_name = camp.get('campaign_name', 'Unnamed')
+                    status = camp.get('campaign_status', 'UNKNOWN')
+                    budget = camp.get('daily_budget', 0)
+                    campaign_type = "GMV Max" if camp.get('gmv_max', False) else "Manual"
+                    
+                    cols = st.columns([3, 2, 2, 2, 1])
+                    status_emoji = "🟢" if status == "ACTIVE" else "🔴" if status == "PAUSED" else "⚪"
+                    cols[0].write(f"**{camp_name}** | {campaign_type}")
+                    cols[1].write(f"{status_emoji} {status}")
+                    cols[2].write(f"Rp {int(budget):,}/day" if budget > 0 else "No limit")
+                    cols[3].write(f"ID: {camp_id}")
+                    cols[4].button("⚙️", key=f"settings_{camp_id}")
+                    st.divider()
+        else:
+            st.info("No campaigns loaded. Click '🚀 Load Live Data' to fetch your campaigns.")
+            
+            # Show sample/mock campaigns as fallback
+            st.caption("Showing sample campaigns (not your real data):")
+            sample_campaigns = [
+                {"name": "Flash Sale March", "status": "ACTIVE", "budget": 100000, "type": "GMV Max"},
+                {"name": "New Arrival Boost", "status": "PAUSED", "budget": 50000, "type": "Manual"},
+            ]
+            for camp in sample_campaigns:
+                with st.container():
+                    cols = st.columns([3, 2, 2, 2])
+                    status_emoji = "🟢" if camp['status'] == "ACTIVE" else "🔴"
+                    cols[0].write(f"**{camp['name']}** | {camp['type']}")
+                    cols[1].write(f"{status_emoji} {camp['status']}")
+                    cols[2].write(f"Rp {camp['budget']:,}/day")
+                    cols[3].write("(Sample)")
+                    st.divider()
     
     with ad_tabs[1]:
         st.subheader("Create New Campaign")
