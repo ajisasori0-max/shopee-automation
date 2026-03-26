@@ -15,7 +15,7 @@ PARTNER_KEY = "shpk44444e634d6668466c5073776b45646454774a7975706d47497063526453"
 BASE_URL = "https://partner.shopeemobile.com"
 
 # App version
-APP_VERSION = "1.4.0"
+APP_VERSION = "1.4.1"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -342,14 +342,18 @@ if st.sidebar.button("🚀 Load Live Data"):
                 st.session_state.products = MOCK_PRODUCTS
                 st.session_state.data_sources['products'] = f"⚠️ MOCK ({prod_result.get('error', 'Error')})"
             
-            # Ad Campaigns (NEW!)
+            # Ad Campaigns (MAY NOT BE AVAILABLE - requires separate Ads API permission)
             campaigns_result = get_ad_campaigns(tokens)
             if campaigns_result['success']:
                 st.session_state.ad_campaigns = campaigns_result['data']
                 st.session_state.data_sources['ad_campaigns'] = f"✅ LIVE ({len(campaigns_result['data'])} campaigns)"
             else:
                 st.session_state.ad_campaigns = []
-                st.session_state.data_sources['ad_campaigns'] = f"⚠️ MOCK ({campaigns_result.get('error', 'No data')})"
+                # Check if it's permission issue
+                if 'error_not_found' in str(campaigns_result.get('error', '')):
+                    st.session_state.data_sources['ad_campaigns'] = "⚠️ Ads API not available (separate permission required)"
+                else:
+                    st.session_state.data_sources['ad_campaigns'] = f"⚠️ {campaigns_result.get('error', 'No data')}"
             
             st.session_state.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             st.rerun()
@@ -519,6 +523,31 @@ elif app_mode == "📢 Ads Manager":
     with ad_tabs[0]:
         st.subheader("Active Campaigns")
         
+        # Check if Ads API is available
+        ads_api_status = st.session_state.data_sources.get('ad_campaigns', '')
+        
+        if 'not available' in ads_api_status or 'error_not_found' in ads_api_status:
+            st.warning("""
+            **⚠️ Ads Campaign API Not Available**
+            
+            The Shopee Ads API requires separate permission from the regular Shop API.
+            
+            **What's Working:**
+            - ✅ Ad Balance (Rp 58,724)
+            - ✅ Shop Info
+            - ✅ Orders
+            - ✅ Products
+            
+            **What's Not Available:**
+            - ❌ Campaign List
+            - ❌ Campaign Management
+            
+            **To Fix:** Contact Shopee Open Platform support to request Ads API access for Partner ID 2030653.
+            """)
+            
+            st.divider()
+            st.caption("Showing sample campaigns for reference:")
+        
         # Get real campaigns from session state
         campaigns = st.session_state.ad_campaigns if st.session_state.ad_campaigns else []
         
@@ -540,13 +569,10 @@ elif app_mode == "📢 Ads Manager":
                     cols[4].button("⚙️", key=f"settings_{camp_id}")
                     st.divider()
         else:
-            st.info("No campaigns loaded. Click '🚀 Load Live Data' to fetch your campaigns.")
-            
-            # Show sample/mock campaigns as fallback
-            st.caption("Showing sample campaigns (not your real data):")
+            # Show sample campaigns
             sample_campaigns = [
-                {"name": "Flash Sale March", "status": "ACTIVE", "budget": 100000, "type": "GMV Max"},
-                {"name": "New Arrival Boost", "status": "PAUSED", "budget": 50000, "type": "Manual"},
+                {"name": "GMV Max Auto", "status": "ACTIVE", "budget": 100000, "type": "GMV Max"},
+                {"name": "Manual CPC", "status": "PAUSED", "budget": 50000, "type": "Manual"},
             ]
             for camp in sample_campaigns:
                 with st.container():
