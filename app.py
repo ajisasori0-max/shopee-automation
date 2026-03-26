@@ -339,6 +339,22 @@ if app_mode == "🏪 Seller Dashboard":
             st.write(f"{emoji} **{api.title()}**: {status}")
     else:
         st.info("Click 'Load Live Data' to see data source status")
+    
+    # DEBUG SECTION
+    st.divider()
+    st.subheader("🐛 DEBUG INFO")
+    
+    # Test Product API directly
+    tokens = get_valid_tokens()
+    if tokens:
+        st.write("✅ Token valid")
+        test_result = get_products(tokens)
+        if test_result['success']:
+            st.write(f"✅ Product API: {len(test_result['data'])} items found")
+        else:
+            st.error(f"❌ Product API Error: {test_result.get('error', 'Unknown')}")
+    else:
+        st.error("❌ Token invalid or expired")
 
 elif app_mode == "📢 Ads Manager":
     st.title("📢 PPMJ Ads Manager")
