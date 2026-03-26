@@ -15,7 +15,7 @@ PARTNER_KEY = "shpk44444e634d6668466c5073776b45646454774a7975706d47497063526453"
 BASE_URL = "https://partner.shopeemobile.com"
 
 # App version
-APP_VERSION = "1.2.6"
+APP_VERSION = "1.3.0"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -144,8 +144,9 @@ def get_orders(tokens):
 def get_products(tokens):
     """Get products - NOW WORKING with item_status parameter!"""
     # CRITICAL: item_status is REQUIRED parameter
+    # Added offset=0 to match working test exactly
     data = call_api("/api/v2/product/get_item_list", tokens['access_token'], 
-                   {"page_size": 50, "item_status": "NORMAL"})
+                   {"offset": 0, "page_size": 10, "item_status": "NORMAL"})
     
     items = None
     if 'response' in data and 'item' in data['response']:
