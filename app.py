@@ -19,7 +19,7 @@ ADS_PARTNER_ID = 2030650
 ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
 
 # App version
-APP_VERSION = "1.5.2"
+APP_VERSION = "1.6.0"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -309,24 +309,39 @@ def get_ad_campaigns(tokens):
     
     return {'success': False, 'error': data.get('error', 'No data')}
 
-def get_ad_performance(tokens, campaign_ids=None):
-    """Get ad performance data."""
-    # Default to last 7 days
-    start_time = int((datetime.now() - timedelta(days=7)).timestamp())
-    end_time = int(datetime.now().timestamp())
+def get_ad_performance(tokens):
+    """Get daily ad performance data using correct endpoint and date format."""
+    # Date format: DD-MM-YYYY
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=7)
     
+    start_date_str = start_date.strftime('%d-%m-%Y')
+    end_date_str = end_date.strftime('%d-%m-%Y')
+    
+    ts = int(time.time())
+    path = '/api/v2/ads/get_all_cpc_ads_daily_performance'
+    base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
+    sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+    
+    url = f"{BASE_URL}{path}"
     params = {
-        'start_time': start_time,
-        'end_time': end_time
+        'partner_id': ADS_PARTNER_ID,
+        'timestamp': ts,
+        'sign': sign,
+        'access_token': tokens['access_token'],
+        'shop_id': SHOP_ID,
+        'start_date': start_date_str,
+        'end_date': end_date_str
     }
-    if campaign_ids:
-        params['campaign_id_list'] = ','.join([str(i) for i in campaign_ids])
     
-    data = call_api("/api/v2/ads/get_total_ad_performance", tokens['access_token'], params)
-    
-    if 'response' in data:
-        return {'success': True, 'data': data['response']}
-    return {'success': False, 'error': data.get('error', 'No data')}
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        data = resp.json()
+        if 'response' in data:
+            return {'success': True, 'data': data['response']}
+        return {'success': False, 'error': data.get('error', 'No data')}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
 
 # ============================================================================
 # STREAMLIT UI
@@ -338,7 +353,7 @@ st.sidebar.title("🦊 PPMJ Platform")
 app_mode = st.sidebar.radio("Select", ["🏪 Seller Dashboard", "📢 Ads Manager", "🕵️ Competitor Intel"])
 
 # Session state init
-for key in ['shop_data', 'ad_balance', 'orders', 'products', 'ad_campaigns', 'last_update', 'data_sources']:
+for key in ['shop_data', 'ad_balance', 'orders', 'products', 'ad_campaigns', 'ad_performance', 'last_update', 'data_sources']:
     if key not in st.session_state:
         st.session_state[key] = None if key != 'data_sources' else {}
 
@@ -430,9 +445,20 @@ if st.sidebar.button("🚀 Load Live Data"):
                 else:
                     st.session_state.ad_campaigns = []
                     st.session_state.data_sources['ad_campaigns'] = f"⚠️ {campaigns_result.get('error', 'No data')}"
+                
+                # Ad Performance (NEW!)
+                performance_result = get_ad_performance(ads_tokens)
+                if performance_result['success']:
+                    st.session_state.ad_performance = performance_result['data']
+                    st.session_state.data_sources['ad_performance'] = f"✅ LIVE ({len(performance_result['data'])} days)"
+                else:
+                    st.session_state.ad_performance = []
+                    st.session_state.data_sources['ad_performance'] = f"⚠️ {performance_result.get('error', 'No data')}"
             else:
                 st.session_state.ad_campaigns = []
+                st.session_state.ad_performance = []
                 st.session_state.data_sources['ad_campaigns'] = "⚠️ No Ads tokens"
+                st.session_state.data_sources['ad_performance'] = "⚠️ No Ads tokens"
             
             st.session_state.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             st.rerun()
@@ -763,33 +789,99 @@ elif app_mode == "📢 Ads Manager":
         with ad_tabs[2]:
             st.subheader("Campaign Performance")
             
-            # Performance chart placeholder
-            st.write("**Spend vs Revenue (Last 7 Days)**")
+            # Check if we have live performance data
+            perf_data = st.session_state.ad_performance
             
-            import pandas as pd
-            import numpy as np
-            
-            # Sample performance data
-            dates = pd.date_range(end=datetime.now(), periods=7, freq='D')
-            performance_data = pd.DataFrame({
-                'Date': dates,
-                'Spend': [65000, 72000, 58000, 81000, 69000, 75000, 87500],
-                'Revenue': [195000, 201000, 156000, 243000, 179000, 210000, 280000],
-            })
-            performance_data['ROAS'] = performance_data['Revenue'] / performance_data['Spend']
-            
-            st.line_chart(performance_data.set_index('Date')[['Spend', 'Revenue']])
-            
-            st.divider()
-            
-            cols = st.columns(4)
-            cols[0].metric("Total Spend", "Rp 495,500")
-            cols[1].metric("Total Revenue", "Rp 1,464,000")
-            cols[2].metric("Avg ROAS", "2.95x")
-            cols[3].metric("Impressions", "45.2K")
-            
-            st.divider()
-        st.caption("📊 Performance data is sample/demo. Real data requires Shopee Ads API production access.")
+            if perf_data and len(perf_data) > 0:
+                st.success("🟢 **LIVE Performance Data** (Last 7 Days)")
+                
+                import pandas as pd
+                
+                # Convert to DataFrame
+                df_data = []
+                total_spend = 0
+                total_gmv = 0
+                total_impressions = 0
+                total_clicks = 0
+                
+                for day in perf_data:
+                    spend = day.get('expense', 0)
+                    gmv = day.get('direct_gmv', 0)
+                    roas = day.get('direct_roas', 0)
+                    impressions = day.get('impression', 0)
+                    clicks = day.get('clicks', 0)
+                    
+                    # Parse date from DD-MM-YYYY to datetime
+                    date_parts = day.get('date', '01-01-2026').split('-')
+                    date_obj = datetime(int(date_parts[2]), int(date_parts[1]), int(date_parts[0]))
+                    
+                    df_data.append({
+                        'Date': date_obj,
+                        'Spend': spend,
+                        'Revenue': gmv,
+                        'ROAS': roas,
+                        'Impressions': impressions,
+                        'Clicks': clicks
+                    })
+                    
+                    total_spend += spend
+                    total_gmv += gmv
+                    total_impressions += impressions
+                    total_clicks += clicks
+                
+                df = pd.DataFrame(df_data).sort_values('Date')
+                
+                # Show chart
+                st.write("**Spend vs Revenue**")
+                st.line_chart(df.set_index('Date')[['Spend', 'Revenue']])
+                
+                # Show metrics
+                st.divider()
+                avg_roas = total_gmv / total_spend if total_spend > 0 else 0
+                ctr = (total_clicks / total_impressions * 100) if total_impressions > 0 else 0
+                
+                cols = st.columns(4)
+                cols[0].metric("Total Spend", f"Rp {int(total_spend):,}")
+                cols[1].metric("Total Revenue", f"Rp {int(total_gmv):,}")
+                cols[2].metric("Avg ROAS", f"{avg_roas:.2f}x")
+                cols[3].metric("CTR", f"{ctr:.2f}%")
+                
+                # Show daily breakdown
+                st.divider()
+                st.write("**Daily Breakdown**")
+                
+                for _, row in df.iterrows():
+                    col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
+                    with col1:
+                        st.write(f"**{row['Date'].strftime('%d %b')}**")
+                    with col2:
+                        st.write(f"Rp {int(row['Spend']):,}")
+                    with col3:
+                        st.write(f"Rp {int(row['Revenue']):,}")
+                    with col4:
+                        st.write(f"{row['ROAS']:.2f}x")
+                    with col5:
+                        st.write(f"{int(row['Impressions']):,} impr")
+                
+            else:
+                st.info("📊 Click '🚀 Load Live Data' to fetch performance data")
+                
+                # Show sample as fallback
+                st.write("**Sample Performance (Demo)**")
+                import pandas as pd
+                dates = pd.date_range(end=datetime.now(), periods=7, freq='D')
+                performance_data = pd.DataFrame({
+                    'Date': dates,
+                    'Spend': [65000, 72000, 58000, 81000, 69000, 75000, 87500],
+                    'Revenue': [195000, 201000, 156000, 243000, 179000, 210000, 280000],
+                })
+                st.line_chart(performance_data.set_index('Date')[['Spend', 'Revenue']])
+                
+                cols = st.columns(4)
+                cols[0].metric("Total Spend", "Rp 495,500")
+                cols[1].metric("Total Revenue", "Rp 1,464,000")
+                cols[2].metric("Avg ROAS", "2.95x")
+                cols[3].metric("Impressions", "45.2K")
 
 elif app_mode == "🕵️ Competitor Intel":
     st.title("🕵️ Competitor Intelligence")
