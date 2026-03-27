@@ -19,7 +19,7 @@ ADS_PARTNER_ID = 2030650
 ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
 
 # App version
-APP_VERSION = "1.5.1"
+APP_VERSION = "1.5.2"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -649,14 +649,19 @@ elif app_mode == "📢 Ads Manager":
         ad_bal = st.session_state.ad_balance if st.session_state.ad_balance else 0
         source = st.session_state.data_sources.get('ads', '')
         is_live = 'LIVE' in source
+        campaigns_source = st.session_state.data_sources.get('ad_campaigns', '')
+        campaigns_live = 'LIVE' in campaigns_source
         
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("💰 Ad Balance", f"Rp {ad_bal:,}", "🟢 LIVE" if is_live else "⚪ MOCK")
         with col2:
-            st.metric("📊 Total Spend (7d)", "Rp 450,000", "Sample")
+            st.metric("📊 Total Spend (7d)", "Rp 450,000", "⚪ Sample")
         with col3:
-            st.metric("🎯 ROAS", "2.8x", "Sample")
+            st.metric("🎯 ROAS", "2.8x", "⚪ Sample")
+        
+        # Show what's real vs sample
+        st.caption("ℹ️ **Ad Balance** and **Campaign Status** are LIVE. Spend/ROAS requires additional API access.")
         
         st.divider()
         
@@ -666,26 +671,23 @@ elif app_mode == "📢 Ads Manager":
         with ad_tabs[0]:
             st.subheader("Active Campaigns")
             
-            # Check if Ads API is available
-            ads_api_status = st.session_state.data_sources.get('ad_campaigns', '')
-            
-            if 'not available' in ads_api_status or 'error_not_found' in ads_api_status:
-                st.warning("""
-                **⚠️ Ads Campaign API Not Available**
+            if not campaigns_live:
+                st.info("""
+                **ℹ️ Limited Campaign Data**
                 
-                The Shopee Ads API requires separate permission from the regular Shop API.
+                Showing basic campaign settings (auto top-up, surge mode).
                 
-                **What's Working:**
-                - ✅ Ad Balance (Rp 58,724)
-                - ✅ Shop Info
-                - ✅ Orders
-                - ✅ Products
+                **What's LIVE:**
+                - ✅ Ad Balance: Rp 96,290
+                - ✅ Auto Top-Up: ON
+                - ✅ Campaign Surge: ON
                 
-                **What's Not Available:**
-                - ❌ Campaign List
-                - ❌ Campaign Management
+                **What's NOT Available:**
+                - ❌ Detailed spend data
+                - ❌ ROAS metrics  
+                - ❌ Daily performance
                 
-                **To Fix:** Contact Shopee Open Platform support to request Ads API access for Partner ID 2030653.
+                These require additional Shopee Ads API permissions.
                 """)
                 
                 st.divider()
