@@ -7,15 +7,19 @@ import time
 from datetime import datetime, timedelta
 
 # ============================================================================
-# CONFIG - PRODUCTION
+# CONFIG - PRODUCTION (SELLER IN-HOUSE)
 # ============================================================================
 PARTNER_ID = 2030653
 SHOP_ID = 1147948100
 PARTNER_KEY = "shpk44444e634d6668466c5073776b45646454774a7975706d47497063526453"
 BASE_URL = "https://partner.shopeemobile.com"
 
+# ADS APP CONFIG
+ADS_PARTNER_ID = 2030650
+ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
+
 # App version
-APP_VERSION = "1.4.1"
+APP_VERSION = "1.5.0"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -90,6 +94,19 @@ def get_valid_tokens():
     # Token expired, refresh
     return refresh_tokens()
 
+# ADS TOKEN MANAGEMENT
+def load_ads_tokens():
+    """Load Ads app tokens from file."""
+    try:
+        with open('tokens_ads.json', 'r') as f:
+            return json.load(f)
+    except:
+        return None
+
+def get_valid_ads_tokens():
+    """Get Ads tokens."""
+    return load_ads_tokens()
+
 # ============================================================================
 # API CALLS (With error handling)
 # ============================================================================
@@ -118,12 +135,29 @@ def get_shop_info(tokens):
     return {'success': False, 'error': data.get('error', 'Unknown')}
 
 def get_ad_balance(tokens):
-    """Get ad balance - WORKS (in response.total_balance)."""
-    data = call_api("/api/v2/ads/get_total_balance", tokens['access_token'])
-    # Ad balance is in response.total_balance
-    if 'response' in data and 'total_balance' in data['response']:
-        return {'success': True, 'data': data['response']['total_balance']}
-    return {'success': False, 'error': data.get('error', 'No data'), 'raw': data}
+    """Get ad balance using Ads app credentials."""
+    ts = int(time.time())
+    path = '/api/v2/ads/get_total_balance'
+    base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
+    sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+    
+    url = f"{BASE_URL}{path}"
+    params = {
+        'partner_id': ADS_PARTNER_ID,
+        'timestamp': ts,
+        'sign': sign,
+        'access_token': tokens['access_token'],
+        'shop_id': SHOP_ID
+    }
+    
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        data = resp.json()
+        if 'response' in data and 'total_balance' in data['response']:
+            return {'success': True, 'data': data['response']['total_balance']}
+        return {'success': False, 'error': data.get('error', 'No data')}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
 
 def get_orders(tokens):
     """Get orders - WORKS with time_range_field."""
@@ -228,11 +262,51 @@ def get_product_details(tokens, item_ids):
 # ===== ADS APIs =====
 
 def get_ad_campaigns(tokens):
-    """Get all ad campaigns."""
-    data = call_api("/api/v2/ads/get_cpc_ad_list", tokens['access_token'])
+    """Get ad campaigns using correct endpoint with Ads credentials."""
+    # Use Ads app credentials
+    ts = int(time.time())
+    path = '/api/v2/ads/get_shop_toggle_info'
+    base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
+    sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
     
-    if 'response' in data and 'data' in data['response']:
-        return {'success': True, 'data': data['response']['data']}
+    url = f"{BASE_URL}{path}"
+    params = {
+        'partner_id': ADS_PARTNER_ID,
+        'timestamp': ts,
+        'sign': sign,
+        'access_token': tokens['access_token'],
+        'shop_id': SHOP_ID
+    }
+    
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        data = resp.json()
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+    
+    campaigns = []
+    
+    if 'response' in data:
+        toggle = data['response']
+        campaigns.append({
+            'campaign_id': 'auto_topup',
+            'campaign_name': 'Auto Top-Up Campaign',
+            'campaign_status': 'ACTIVE' if toggle.get('auto_top_up') else 'PAUSED',
+            'daily_budget': 0,
+            'gmv_max': True
+        })
+        
+        if toggle.get('campaign_surge'):
+            campaigns.append({
+                'campaign_id': 'campaign_surge',
+                'campaign_name': 'Campaign Surge (GMV Max)',
+                'campaign_status': 'ACTIVE',
+                'daily_budget': 0,
+                'gmv_max': True
+            })
+        
+        return {'success': True, 'data': campaigns}
+    
     return {'success': False, 'error': data.get('error', 'No data')}
 
 def get_ad_performance(tokens, campaign_ids=None):
@@ -273,9 +347,10 @@ st.sidebar.header("⚡ Actions")
 if st.sidebar.button("🚀 Load Live Data"):
     with st.spinner("Connecting to Shopee..."):
         tokens = get_valid_tokens()
+        ads_tokens = get_valid_ads_tokens()
         
         if not tokens:
-            st.sidebar.error("❌ Cannot connect - token issue")
+            st.sidebar.error("❌ Cannot connect - Seller In-House token issue")
         else:
             # Shop Info (always works)
             shop_result = get_shop_info(tokens)
@@ -285,14 +360,18 @@ if st.sidebar.button("🚀 Load Live Data"):
             else:
                 st.session_state.data_sources['shop'] = f"❌ {shop_result['error']}"
             
-            # Ad Balance
-            ads_result = get_ad_balance(tokens)
-            if ads_result['success']:
-                st.session_state.ad_balance = ads_result['data']
-                st.session_state.data_sources['ads'] = '✅ LIVE'
+            # Ad Balance (using Ads app tokens)
+            if ads_tokens:
+                ads_result = get_ad_balance(ads_tokens)
+                if ads_result['success']:
+                    st.session_state.ad_balance = ads_result['data']
+                    st.session_state.data_sources['ads'] = '✅ LIVE'
+                else:
+                    st.session_state.ad_balance = 0
+                    st.session_state.data_sources['ads'] = f"⚠️ {ads_result.get('error', 'No data')}"
             else:
                 st.session_state.ad_balance = 0
-                st.session_state.data_sources['ads'] = f"⚠️ {ads_result.get('error', 'No data')}"
+                st.session_state.data_sources['ads'] = "⚠️ No Ads tokens"
             
             # Orders
             orders_result = get_orders(tokens)
@@ -342,18 +421,18 @@ if st.sidebar.button("🚀 Load Live Data"):
                 st.session_state.products = MOCK_PRODUCTS
                 st.session_state.data_sources['products'] = f"⚠️ MOCK ({prod_result.get('error', 'Error')})"
             
-            # Ad Campaigns (MAY NOT BE AVAILABLE - requires separate Ads API permission)
-            campaigns_result = get_ad_campaigns(tokens)
-            if campaigns_result['success']:
-                st.session_state.ad_campaigns = campaigns_result['data']
-                st.session_state.data_sources['ad_campaigns'] = f"✅ LIVE ({len(campaigns_result['data'])} campaigns)"
+            # Ad Campaigns (using Ads app tokens)
+            if ads_tokens:
+                campaigns_result = get_ad_campaigns(ads_tokens)
+                if campaigns_result['success']:
+                    st.session_state.ad_campaigns = campaigns_result['data']
+                    st.session_state.data_sources['ad_campaigns'] = f"✅ LIVE ({len(campaigns_result['data'])} campaigns)"
+                else:
+                    st.session_state.ad_campaigns = []
+                    st.session_state.data_sources['ad_campaigns'] = f"⚠️ {campaigns_result.get('error', 'No data')}"
             else:
                 st.session_state.ad_campaigns = []
-                # Check if it's permission issue
-                if 'error_not_found' in str(campaigns_result.get('error', '')):
-                    st.session_state.data_sources['ad_campaigns'] = "⚠️ Ads API not available (separate permission required)"
-                else:
-                    st.session_state.data_sources['ad_campaigns'] = f"⚠️ {campaigns_result.get('error', 'No data')}"
+                st.session_state.data_sources['ad_campaigns'] = "⚠️ No Ads tokens"
             
             st.session_state.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             st.rerun()
