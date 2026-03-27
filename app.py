@@ -19,7 +19,7 @@ ADS_PARTNER_ID = 2030650
 ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
 
 # App version
-APP_VERSION = "1.5.0"
+APP_VERSION = "1.5.1"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -581,148 +581,212 @@ elif app_mode == "📢 Ads Manager":
     st.title("📢 PPMJ Ads Manager")
     st.markdown("*Campaign Management | Payung Murah Jakarta*")
     
-    # Ad Balance Header
-    ad_bal = st.session_state.ad_balance if st.session_state.ad_balance else 0
-    source = st.session_state.data_sources.get('ads', '')
-    is_live = 'LIVE' in source
+    # Check if Ads tokens exist
+    ads_tokens = load_ads_tokens()
     
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("💰 Ad Balance", f"Rp {ad_bal:,}", "🟢 LIVE" if is_live else "⚪ MOCK")
-    with col2:
-        st.metric("📊 Total Spend (7d)", "Rp 450,000", "Sample")
-    with col3:
-        st.metric("🎯 ROAS", "2.8x", "Sample")
-    
-    st.divider()
-    
-    # Campaign Tabs
-    ad_tabs = st.tabs(["📋 Campaigns", "➕ Create Campaign", "📈 Performance"])
-    
-    with ad_tabs[0]:
-        st.subheader("Active Campaigns")
+    if not ads_tokens:
+        st.warning("""
+        **⚠️ Ads App Not Authorized**
         
-        # Check if Ads API is available
-        ads_api_status = st.session_state.data_sources.get('ad_campaigns', '')
+        The Ads app (Partner ID 2030650) needs to be authorized separately.
+        """)
         
-        if 'not available' in ads_api_status or 'error_not_found' in ads_api_status:
-            st.warning("""
-            **⚠️ Ads Campaign API Not Available**
-            
-            The Shopee Ads API requires separate permission from the regular Shop API.
-            
-            **What's Working:**
-            - ✅ Ad Balance (Rp 58,724)
-            - ✅ Shop Info
-            - ✅ Orders
-            - ✅ Products
-            
-            **What's Not Available:**
-            - ❌ Campaign List
-            - ❌ Campaign Management
-            
-            **To Fix:** Contact Shopee Open Platform support to request Ads API access for Partner ID 2030653.
-            """)
-            
-            st.divider()
-            st.caption("Showing sample campaigns for reference:")
+        col1, col2 = st.columns(2)
         
-        # Get real campaigns from session state
-        campaigns = st.session_state.ad_campaigns if st.session_state.ad_campaigns else []
-        
-        if campaigns:
-            for camp in campaigns:
-                with st.container():
-                    camp_id = camp.get('campaign_id', 'N/A')
-                    camp_name = camp.get('campaign_name', 'Unnamed')
-                    status = camp.get('campaign_status', 'UNKNOWN')
-                    budget = camp.get('daily_budget', 0)
-                    campaign_type = "GMV Max" if camp.get('gmv_max', False) else "Manual"
-                    
-                    cols = st.columns([3, 2, 2, 2, 1])
-                    status_emoji = "🟢" if status == "ACTIVE" else "🔴" if status == "PAUSED" else "⚪"
-                    cols[0].write(f"**{camp_name}** | {campaign_type}")
-                    cols[1].write(f"{status_emoji} {status}")
-                    cols[2].write(f"Rp {int(budget):,}/day" if budget > 0 else "No limit")
-                    cols[3].write(f"ID: {camp_id}")
-                    cols[4].button("⚙️", key=f"settings_{camp_id}")
-                    st.divider()
-        else:
-            # Show sample campaigns
-            sample_campaigns = [
-                {"name": "GMV Max Auto", "status": "ACTIVE", "budget": 100000, "type": "GMV Max"},
-                {"name": "Manual CPC", "status": "PAUSED", "budget": 50000, "type": "Manual"},
-            ]
-            for camp in sample_campaigns:
-                with st.container():
-                    cols = st.columns([3, 2, 2, 2])
-                    status_emoji = "🟢" if camp['status'] == "ACTIVE" else "🔴"
-                    cols[0].write(f"**{camp['name']}** | {camp['type']}")
-                    cols[1].write(f"{status_emoji} {camp['status']}")
-                    cols[2].write(f"Rp {camp['budget']:,}/day")
-                    cols[3].write("(Sample)")
-                    st.divider()
-    
-    with ad_tabs[1]:
-        st.subheader("Create New Campaign")
-        
-        with st.form("create_campaign"):
-            col1, col2 = st.columns(2)
-            with col1:
-                camp_name = st.text_input("Campaign Name", placeholder="e.g., Weekend Flash Sale")
-                camp_type = st.selectbox("Campaign Type", ["GMV Max (AI Optimized)", "Manual CPC"])
-                daily_budget = st.number_input("Daily Budget (Rp)", min_value=50000, value=100000, step=10000)
-            with col2:
-                start_date = st.date_input("Start Date", datetime.now())
-                end_date = st.date_input("End Date", datetime.now() + timedelta(days=7))
+        with col1:
+            if st.button("🔗 Generate Auth URL"):
+                import urllib.parse
+                ts = int(time.time())
+                path = '/api/v2/shop/auth_partner'
+                base = f"{ADS_PARTNER_ID}{path}{ts}"
+                sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
                 
-                if camp_type == "GMV Max (AI Optimized)":
-                    roas_target = st.slider("ROAS Target", min_value=1.0, max_value=10.0, value=3.0, step=0.5)
-                else:
-                    bid_per_click = st.number_input("Bid Per Click (Rp)", min_value=100, value=500, step=100)
+                auth_url = f"https://partner.shopeemobile.com{path}?" + urllib.parse.urlencode({
+                    'partner_id': ADS_PARTNER_ID,
+                    'timestamp': ts,
+                    'sign': sign,
+                    'redirect': 'https://shopee-automation-70ts.onrender.com'
+                })
+                
+                st.code(auth_url, language=None)
+                st.info("1. Open this URL in browser\\n2. Authorize the app\\n3. Copy the code from redirect URL")
+        
+        with col2:
+            auth_code = st.text_input("Enter auth code:", placeholder="6a636941...")
+            if st.button("✅ Exchange for Tokens") and auth_code:
+                try:
+                    # Exchange code for tokens
+                    ts = int(time.time())
+                    path = '/api/v2/auth/token/get'
+                    base = f"{ADS_PARTNER_ID}{path}{ts}"
+                    sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+                    
+                    url = f"https://partner.shopeemobile.com{path}?partner_id={ADS_PARTNER_ID}&timestamp={ts}&sign={sign}"
+                    body = {
+                        'code': auth_code,
+                        'shop_id': SHOP_ID,
+                        'partner_id': ADS_PARTNER_ID
+                    }
+                    
+                    resp = requests.post(url, json=body)
+                    data = resp.json()
+                    
+                    if 'access_token' in data:
+                        with open('tokens_ads.json', 'w') as f:
+                            json.dump(data, f, indent=2)
+                        st.success("✅ Ads app authorized! Refresh the page.")
+                    else:
+                        st.error(f"❌ Failed: {data.get('error', 'Unknown')}")
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+        
+        st.divider()
+        st.info("After authorization, click '🚀 Load Live Data' in the sidebar to fetch Ads data.")
+    
+    else:
+        # Ads tokens exist - show normal dashboard
+        # Ad Balance Header
+        ad_bal = st.session_state.ad_balance if st.session_state.ad_balance else 0
+        source = st.session_state.data_sources.get('ads', '')
+        is_live = 'LIVE' in source
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("💰 Ad Balance", f"Rp {ad_bal:,}", "🟢 LIVE" if is_live else "⚪ MOCK")
+        with col2:
+            st.metric("📊 Total Spend (7d)", "Rp 450,000", "Sample")
+        with col3:
+            st.metric("🎯 ROAS", "2.8x", "Sample")
+        
+        st.divider()
+        
+        # Campaign Tabs
+        ad_tabs = st.tabs(["📋 Campaigns", "➕ Create Campaign", "📈 Performance"])
+        
+        with ad_tabs[0]:
+            st.subheader("Active Campaigns")
+            
+            # Check if Ads API is available
+            ads_api_status = st.session_state.data_sources.get('ad_campaigns', '')
+            
+            if 'not available' in ads_api_status or 'error_not_found' in ads_api_status:
+                st.warning("""
+                **⚠️ Ads Campaign API Not Available**
+                
+                The Shopee Ads API requires separate permission from the regular Shop API.
+                
+                **What's Working:**
+                - ✅ Ad Balance (Rp 58,724)
+                - ✅ Shop Info
+                - ✅ Orders
+                - ✅ Products
+                
+                **What's Not Available:**
+                - ❌ Campaign List
+                - ❌ Campaign Management
+                
+                **To Fix:** Contact Shopee Open Platform support to request Ads API access for Partner ID 2030653.
+                """)
+                
+                st.divider()
+                st.caption("Showing sample campaigns for reference:")
+            
+            # Get real campaigns from session state
+            campaigns = st.session_state.ad_campaigns if st.session_state.ad_campaigns else []
+            
+            if campaigns:
+                for camp in campaigns:
+                    with st.container():
+                        camp_id = camp.get('campaign_id', 'N/A')
+                        camp_name = camp.get('campaign_name', 'Unnamed')
+                        status = camp.get('campaign_status', 'UNKNOWN')
+                        budget = camp.get('daily_budget', 0)
+                        campaign_type = "GMV Max" if camp.get('gmv_max', False) else "Manual"
+                        
+                        cols = st.columns([3, 2, 2, 2, 1])
+                        status_emoji = "🟢" if status == "ACTIVE" else "🔴" if status == "PAUSED" else "⚪"
+                        cols[0].write(f"**{camp_name}** | {campaign_type}")
+                        cols[1].write(f"{status_emoji} {status}")
+                        cols[2].write(f"Rp {int(budget):,}/day" if budget > 0 else "No limit")
+                        cols[3].write(f"ID: {camp_id}")
+                        cols[4].button("⚙️", key=f"settings_{camp_id}")
+                        st.divider()
+            else:
+                # Show sample campaigns
+                sample_campaigns = [
+                    {"name": "GMV Max Auto", "status": "ACTIVE", "budget": 100000, "type": "GMV Max"},
+                    {"name": "Manual CPC", "status": "PAUSED", "budget": 50000, "type": "Manual"},
+                ]
+                for camp in sample_campaigns:
+                    with st.container():
+                        cols = st.columns([3, 2, 2, 2])
+                        status_emoji = "🟢" if camp['status'] == "ACTIVE" else "🔴"
+                        cols[0].write(f"**{camp['name']}** | {camp['type']}")
+                        cols[1].write(f"{status_emoji} {camp['status']}")
+                        cols[2].write(f"Rp {camp['budget']:,}/day")
+                        cols[3].write("(Sample)")
+                        st.divider()
+        
+        with ad_tabs[1]:
+            st.subheader("Create New Campaign")
+            
+            with st.form("create_campaign"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    camp_name = st.text_input("Campaign Name", placeholder="e.g., Weekend Flash Sale")
+                    camp_type = st.selectbox("Campaign Type", ["GMV Max (AI Optimized)", "Manual CPC"])
+                    daily_budget = st.number_input("Daily Budget (Rp)", min_value=50000, value=100000, step=10000)
+                with col2:
+                    start_date = st.date_input("Start Date", datetime.now())
+                    end_date = st.date_input("End Date", datetime.now() + timedelta(days=7))
+                    
+                    if camp_type == "GMV Max (AI Optimized)":
+                        roas_target = st.slider("ROAS Target", min_value=1.0, max_value=10.0, value=3.0, step=0.5)
+                    else:
+                        bid_per_click = st.number_input("Bid Per Click (Rp)", min_value=100, value=500, step=100)
+                
+                st.divider()
+                st.write("**Select Products to Promote:**")
+                products_to_promote = st.multiselect(
+                    "Products",
+                    ["Payung Lipat Premium Red", "Payung Lipat Premium Blue", "Payung Golf Besar", "Payung Anak Karakter"],
+                    default=["Payung Lipat Premium Red"]
+                )
+                
+                submitted = st.form_submit_button("🚀 Create Campaign", type="primary")
+                if submitted:
+                    st.success(f"✅ Campaign '{camp_name}' created successfully! (Demo mode)")
+                    st.info("Note: In production, this would create a real campaign via Shopee Ads API.")
+        
+        with ad_tabs[2]:
+            st.subheader("Campaign Performance")
+            
+            # Performance chart placeholder
+            st.write("**Spend vs Revenue (Last 7 Days)**")
+            
+            import pandas as pd
+            import numpy as np
+            
+            # Sample performance data
+            dates = pd.date_range(end=datetime.now(), periods=7, freq='D')
+            performance_data = pd.DataFrame({
+                'Date': dates,
+                'Spend': [65000, 72000, 58000, 81000, 69000, 75000, 87500],
+                'Revenue': [195000, 201000, 156000, 243000, 179000, 210000, 280000],
+            })
+            performance_data['ROAS'] = performance_data['Revenue'] / performance_data['Spend']
+            
+            st.line_chart(performance_data.set_index('Date')[['Spend', 'Revenue']])
             
             st.divider()
-            st.write("**Select Products to Promote:**")
-            products_to_promote = st.multiselect(
-                "Products",
-                ["Payung Lipat Premium Red", "Payung Lipat Premium Blue", "Payung Golf Besar", "Payung Anak Karakter"],
-                default=["Payung Lipat Premium Red"]
-            )
             
-            submitted = st.form_submit_button("🚀 Create Campaign", type="primary")
-            if submitted:
-                st.success(f"✅ Campaign '{camp_name}' created successfully! (Demo mode)")
-                st.info("Note: In production, this would create a real campaign via Shopee Ads API.")
-    
-    with ad_tabs[2]:
-        st.subheader("Campaign Performance")
-        
-        # Performance chart placeholder
-        st.write("**Spend vs Revenue (Last 7 Days)**")
-        
-        import pandas as pd
-        import numpy as np
-        
-        # Sample performance data
-        dates = pd.date_range(end=datetime.now(), periods=7, freq='D')
-        performance_data = pd.DataFrame({
-            'Date': dates,
-            'Spend': [65000, 72000, 58000, 81000, 69000, 75000, 87500],
-            'Revenue': [195000, 201000, 156000, 243000, 179000, 210000, 280000],
-        })
-        performance_data['ROAS'] = performance_data['Revenue'] / performance_data['Spend']
-        
-        st.line_chart(performance_data.set_index('Date')[['Spend', 'Revenue']])
-        
-        st.divider()
-        
-        cols = st.columns(4)
-        cols[0].metric("Total Spend", "Rp 495,500")
-        cols[1].metric("Total Revenue", "Rp 1,464,000")
-        cols[2].metric("Avg ROAS", "2.95x")
-        cols[3].metric("Impressions", "45.2K")
-        
-        st.divider()
+            cols = st.columns(4)
+            cols[0].metric("Total Spend", "Rp 495,500")
+            cols[1].metric("Total Revenue", "Rp 1,464,000")
+            cols[2].metric("Avg ROAS", "2.95x")
+            cols[3].metric("Impressions", "45.2K")
+            
+            st.divider()
         st.caption("📊 Performance data is sample/demo. Real data requires Shopee Ads API production access.")
 
 elif app_mode == "🕵️ Competitor Intel":
