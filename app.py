@@ -94,14 +94,38 @@ def get_valid_tokens():
     # Token expired, refresh
     return refresh_tokens()
 
-# ADS TOKEN MANAGEMENT
+# ADS TOKEN MANAGEMENT (with env var support for Render)
 def load_ads_tokens():
-    """Load Ads app tokens from file."""
+    """Load Ads app tokens from env var or file."""
+    # First check environment variable (for Render persistence)
+    import os
+    env_tokens = os.environ.get('SHOPEE_ADS_TOKENS')
+    if env_tokens:
+        try:
+            return json.loads(env_tokens)
+        except:
+            pass
+    
+    # Fall back to file
     try:
         with open('tokens_ads.json', 'r') as f:
             return json.load(f)
     except:
         return None
+
+def save_ads_tokens(tokens):
+    """Save tokens to file (and show env var for Render)."""
+    # Save to file
+    with open('tokens_ads.json', 'w') as f:
+        json.dump(tokens, f, indent=2)
+    
+    # Also print the env var format for Render
+    print("="*70)
+    print("📝 ADD THIS TO RENDER ENVIRONMENT VARIABLES:")
+    print("="*70)
+    print(f"Key: SHOPEE_ADS_TOKENS")
+    print(f"Value: {json.dumps(tokens)}")
+    print("="*70)
 
 def get_valid_ads_tokens():
     """Get Ads tokens."""
@@ -658,9 +682,22 @@ elif app_mode == "📢 Ads Manager":
                     data = resp.json()
                     
                     if 'access_token' in data:
+                        # Save to file
                         with open('tokens_ads.json', 'w') as f:
                             json.dump(data, f, indent=2)
-                        st.success("✅ Ads app authorized! Refresh the page.")
+                        
+                        # Show env var for Render
+                        st.success("✅ Ads app authorized!")
+                        st.warning("""
+                        **⚠️ IMPORTANT: Add to Render Environment Variables**
+                        
+                        Copy this value to Render Dashboard → Environment:
+                        
+                        **Key:** `SHOPEE_ADS_TOKENS`
+                        **Value:** (copy from below)
+                        """)
+                        st.code(json.dumps(data), language=None)
+                        st.info("After adding to Render, redeploy. Then refresh this page.")
                     else:
                         st.error(f"❌ Failed: {data.get('error', 'Unknown')}")
                 except Exception as e:
