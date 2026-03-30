@@ -19,7 +19,7 @@ ADS_PARTNER_ID = 2030650
 ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
 
 # App version
-APP_VERSION = "1.6.2"
+APP_VERSION = "1.6.3"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -334,7 +334,8 @@ def get_product_details(tokens, item_ids):
 # ===== ADS APIs =====
 
 def get_ad_campaigns(tokens):
-    """Get ad campaigns using product_level_campaign_id_list endpoint."""
+    """Get ad campaigns with full details using product_level_campaign APIs."""
+    # Step 1: Get campaign ID list
     ts = int(time.time())
     path = '/api/v2/ads/get_product_level_campaign_id_list'
     base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
@@ -356,21 +357,59 @@ def get_ad_campaigns(tokens):
         resp = requests.get(url, params=params, timeout=10)
         data = resp.json()
         
-        if 'response' in data and 'campaign_list' in data['response']:
-            campaigns = []
-            for camp in data['response']['campaign_list']:
-                campaigns.append({
-                    'campaign_id': camp.get('campaign_id'),
-                    'campaign_name': f"Campaign {camp.get('campaign_id')}",  # API doesn't give names
-                    'campaign_status': 'ACTIVE',  # Default since we can't get status
-                    'daily_budget': 0,  # Unknown without detail API
-                    'gmv_max': camp.get('ad_type') == 'auto',
-                    'ad_type': camp.get('ad_type', 'manual')
-                })
-            return {'success': True, 'data': campaigns}
-        return {'success': False, 'error': data.get('error', 'No campaign data')}
+        if 'response' not in data or 'campaign_list' not in data['response']:
+            return {'success': False, 'error': data.get('error', 'No campaign data')}
+        
+        campaign_ids = [c.get('campaign_id') for c in data['response']['campaign_list']]
+        
+        # Step 2: Get campaign details (batch first 10)
+        campaigns = []
+        for camp_id in campaign_ids[:10]:
+            camp_detail = get_campaign_detail(tokens, camp_id)
+            if camp_detail:
+                campaigns.append(camp_detail)
+        
+        return {'success': True, 'data': campaigns}
     except Exception as e:
         return {'success': False, 'error': str(e)}
+
+def get_campaign_detail(tokens, campaign_id):
+    """Get detailed info for a single campaign."""
+    try:
+        ts = int(time.time())
+        path = '/api/v2/ads/get_product_level_campaign_setting_info'
+        base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
+        sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+        
+        url = f"{BASE_URL}{path}"
+        params = {
+            'partner_id': ADS_PARTNER_ID,
+            'timestamp': ts,
+            'sign': sign,
+            'access_token': tokens['access_token'],
+            'shop_id': SHOP_ID,
+            'campaign_id_list': str(campaign_id),
+            'info_type_list': '1'
+        }
+        
+        resp = requests.get(url, params=params, timeout=5)
+        data = resp.json()
+        
+        if 'response' in data and 'campaign_list' in data['response']:
+            camp = data['response']['campaign_list'][0]
+            common = camp.get('common_info', {})
+            return {
+                'campaign_id': camp.get('campaign_id'),
+                'campaign_name': common.get('ad_name', f"Campaign {camp.get('campaign_id')}")[:50],
+                'campaign_status': common.get('campaign_status', 'unknown').upper(),
+                'daily_budget': common.get('campaign_budget', 0),
+                'gmv_max': common.get('ad_type') == 'auto',
+                'ad_type': common.get('ad_type', 'manual'),
+                'bidding_method': common.get('bidding_method', 'unknown')
+            }
+        return None
+    except:
+        return None
 
 def get_ad_performance(tokens):
     """Get daily ad performance data using correct endpoint and date format."""
