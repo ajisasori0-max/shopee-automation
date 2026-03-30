@@ -19,7 +19,7 @@ ADS_PARTNER_ID = 2030650
 ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
 
 # App version
-APP_VERSION = "1.6.0"
+APP_VERSION = "1.6.1"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -127,9 +127,57 @@ def save_ads_tokens(tokens):
     print(f"Value: {json.dumps(tokens)}")
     print("="*70)
 
+def refresh_ads_tokens():
+    """Refresh Ads access token using refresh_token."""
+    tokens = load_ads_tokens()
+    if not tokens or 'refresh_token' not in tokens:
+        return None
+    
+    try:
+        path = "/api/v2/auth/access_token/get"
+        ts = int(time.time())
+        base = f"{ADS_PARTNER_ID}{path}{ts}"
+        sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+        
+        url = f"{BASE_URL}{path}"
+        resp = requests.post(url, 
+                            params={"partner_id": ADS_PARTNER_ID, "timestamp": ts, "sign": sign},
+                            json={"refresh_token": tokens['refresh_token'], "shop_id": SHOP_ID, "partner_id": ADS_PARTNER_ID},
+                            timeout=10)
+        data = resp.json()
+        
+        if 'access_token' in data:
+            with open('tokens_ads.json', 'w') as f:
+                json.dump(data, f, indent=2)
+            return data
+        return None
+    except:
+        return None
+
 def get_valid_ads_tokens():
-    """Get Ads tokens."""
-    return load_ads_tokens()
+    """Get Ads tokens, refreshing if needed."""
+    tokens = load_ads_tokens()
+    if not tokens:
+        return None
+    
+    # Test if current token works
+    ts = int(time.time())
+    path = '/api/v2/ads/get_total_balance'
+    base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
+    sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+    url = f"{BASE_URL}{path}"
+    params = {"partner_id": ADS_PARTNER_ID, "timestamp": ts, "sign": sign, "access_token": tokens['access_token'], "shop_id": SHOP_ID}
+    
+    try:
+        resp = requests.get(url, params=params, timeout=5)
+        data = resp.json()
+        if 'response' in data:
+            return tokens  # Token still valid
+    except:
+        pass
+    
+    # Token expired, refresh
+    return refresh_ads_tokens()
 
 # ============================================================================
 # API CALLS (With error handling)
