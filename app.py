@@ -19,7 +19,7 @@ ADS_PARTNER_ID = 2030650
 ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
 
 # App version
-APP_VERSION = "1.6.1"
+APP_VERSION = "1.6.2"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -334,10 +334,9 @@ def get_product_details(tokens, item_ids):
 # ===== ADS APIs =====
 
 def get_ad_campaigns(tokens):
-    """Get ad campaigns using correct endpoint with Ads credentials."""
-    # Use Ads app credentials
+    """Get ad campaigns using product_level_campaign_id_list endpoint."""
     ts = int(time.time())
-    path = '/api/v2/ads/get_shop_toggle_info'
+    path = '/api/v2/ads/get_product_level_campaign_id_list'
     base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
     sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
     
@@ -347,39 +346,31 @@ def get_ad_campaigns(tokens):
         'timestamp': ts,
         'sign': sign,
         'access_token': tokens['access_token'],
-        'shop_id': SHOP_ID
+        'shop_id': SHOP_ID,
+        'ad_type': 'all',
+        'offset': 0,
+        'limit': 100
     }
     
     try:
         resp = requests.get(url, params=params, timeout=10)
         data = resp.json()
+        
+        if 'response' in data and 'campaign_list' in data['response']:
+            campaigns = []
+            for camp in data['response']['campaign_list']:
+                campaigns.append({
+                    'campaign_id': camp.get('campaign_id'),
+                    'campaign_name': f"Campaign {camp.get('campaign_id')}",  # API doesn't give names
+                    'campaign_status': 'ACTIVE',  # Default since we can't get status
+                    'daily_budget': 0,  # Unknown without detail API
+                    'gmv_max': camp.get('ad_type') == 'auto',
+                    'ad_type': camp.get('ad_type', 'manual')
+                })
+            return {'success': True, 'data': campaigns}
+        return {'success': False, 'error': data.get('error', 'No campaign data')}
     except Exception as e:
         return {'success': False, 'error': str(e)}
-    
-    campaigns = []
-    
-    if 'response' in data:
-        toggle = data['response']
-        campaigns.append({
-            'campaign_id': 'auto_topup',
-            'campaign_name': 'Auto Top-Up Campaign',
-            'campaign_status': 'ACTIVE' if toggle.get('auto_top_up') else 'PAUSED',
-            'daily_budget': 0,
-            'gmv_max': True
-        })
-        
-        if toggle.get('campaign_surge'):
-            campaigns.append({
-                'campaign_id': 'campaign_surge',
-                'campaign_name': 'Campaign Surge (GMV Max)',
-                'campaign_status': 'ACTIVE',
-                'daily_budget': 0,
-                'gmv_max': True
-            })
-        
-        return {'success': True, 'data': campaigns}
-    
-    return {'success': False, 'error': data.get('error', 'No data')}
 
 def get_ad_performance(tokens):
     """Get daily ad performance data using correct endpoint and date format."""
