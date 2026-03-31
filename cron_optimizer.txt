@@ -1,0 +1,4 @@
+# Shopee Ads Auto-Optimizer - Daily Cron Job
+# Runs at 09:00 WIB every day
+
+0 9 * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && /usr/local/bin/python3 auto_optimizer.py >> logs/optimizer_$(date +\%Y\%m\%d).log 2>&1
