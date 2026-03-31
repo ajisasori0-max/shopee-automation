@@ -19,7 +19,7 @@ ADS_PARTNER_ID = 2030650
 ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
 
 # App version
-APP_VERSION = "1.6.3"
+APP_VERSION = "1.7.0"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -807,7 +807,7 @@ elif app_mode == "📢 Ads Manager":
         st.divider()
         
         # Campaign Tabs
-        ad_tabs = st.tabs(["📋 Campaigns", "➕ Create Campaign", "📈 Performance"])
+        ad_tabs = st.tabs(["📋 Campaigns", "➕ Create Campaign", "📈 Performance", "🤖 Auto-Optimizer"])
         
         with ad_tabs[0]:
             st.subheader("Active Campaigns")
@@ -997,6 +997,77 @@ elif app_mode == "📢 Ads Manager":
                 cols[1].metric("Total Revenue", "Rp 1,464,000")
                 cols[2].metric("Avg ROAS", "2.95x")
                 cols[3].metric("Impressions", "45.2K")
+        
+        with ad_tabs[3]:
+            st.subheader("🤖 Ads Auto-Optimizer")
+            st.markdown("*Daily automated optimization based on Cici Kelola model*")
+            
+            st.info("""
+            **🎯 MISSION:** Maintain algorithmic momentum to prevent 20→150→30 crash
+            
+            **What this does:**
+            - ✅ Daily ROAS monitoring
+            - ✅ Campaign performance analysis
+            - ✅ Auto-recommendations for adjustments
+            - ⚠️ Manual approval required (API limitations)
+            """)
+            
+            # Run Auto-Optimizer button
+            if st.button("🚀 Run Auto-Optimizer Now", type="primary"):
+                with st.spinner("Analyzing campaigns..."):
+                    import subprocess
+                    try:
+                        result = subprocess.run(
+                            ['python3', 'auto_optimizer.py'],
+                            capture_output=True,
+                            text=True,
+                            timeout=60
+                        )
+                        st.code(result.stdout, language=None)
+                        if result.stderr:
+                            st.error(f"Errors: {result.stderr}")
+                    except Exception as e:
+                        st.error(f"Error running optimizer: {e}")
+            
+            st.divider()
+            
+            # Show optimization rules
+            st.subheader("⚙️ Optimization Rules")
+            
+            rules = {
+                "MIN_ROAS": 2.0,
+                "TARGET_ROAS": 3.5,
+                "ROAS_ADJUST_STEP": 0.2,
+                "MIN_SPEND_EVAL": 50000,
+                "LEARNING_PHASE_DAYS": 7
+            }
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("**Current Thresholds:**")
+                for key, val in rules.items():
+                    st.write(f"- {key}: {val}")
+            
+            with col2:
+                st.write("**Actions Taken:**")
+                st.write("- 📊 Daily performance check")
+                st.write("- 🚨 Alert if ROAS < 2.0x")
+                st.write("- 📈 Suggest ROAS ↑ if < 3.5x")
+                st.write("- 🎯 Weekly adjustment (±20% max)")
+                st.write("- ⏸️ Flag underperformers")
+            
+            st.divider()
+            
+            # Cron job status
+            st.subheader("📅 Automation Schedule")
+            st.write("**Status:** ⏸️ Not yet scheduled")
+            st.write("**Recommended:** Run daily at 09:00 WIB")
+            st.info("""
+            To enable daily automation:
+            1. Test the optimizer manually (button above)
+            2. Verify recommendations make sense
+            3. Add to cron: `0 9 * * * cd /path && python3 auto_optimizer.py`
+            """)
 
 elif app_mode == "🕵️ Competitor Intel":
     st.title("🕵️ Competitor Intelligence")
