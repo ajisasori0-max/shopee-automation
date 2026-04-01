@@ -15,20 +15,18 @@ PARTNER_KEY = 'shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69'
 SHOP_ID = 1147948100
 BASE_URL = "https://partner.shopeemobile.com"
 
-# Thresholds - PHASE 1: Foundation (Week 1-2)
-MIN_ROAS = 4.0  # Starting minimum (scale to 10-12x in Phase 3)
-TARGET_ROAS = 5.0  # Starting target (was 3.5, scale to 12x gradually)
-ROAS_ADJUST_STEP = 0.2
-MIN_SPEND = 50000
+# Thresholds - AGGRESSIVE MODE (Month 6 Target: 7x ROAS + 1M daily)
+MIN_ROAS = 3.0  # Floor (don't go below)
+TARGET_ROAS = 7.0  # End of April target
+CURRENT_ROAS_STEP = 0.3  # Increase 0.3x every 2-3 days (faster)
+MIN_SPEND = 100000  # Minimum daily spend
 AUTO_ADJUST_ENABLED = True
-
-# 12x ROAS Strategy
-MAX_DAILY_BUDGET = 500000
-LEARNING_PHASE_DAYS = 7
+MAX_DAILY_BUDGET = 1000000  # 1M target
+AGGRESSIVE_MODE = True  # Faster iteration
 
 print('='*70)
-print('🤖 SHOPEE ADS AUTO-OPTIMIZER v2.0')
-print(f'Time: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+print('🚀 SHOPEE ADS AUTO-OPTIMIZER v3.0 - AGGRESSIVE MODE')
+print(f'Target: 7x ROAS + Rp 1M daily by April 30 | Daily iteration')
 print('='*70)
 
 # Load tokens
@@ -175,37 +173,38 @@ def restructure_campaign_budget(campaign_id, target_budget):
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
-# 12x ROAS Campaign Strategy - Restructure Settings
+# AGGRESSIVE MODE - Campaign Tiers (Scale to 1M total daily)
+# Month 6 Target: 7x ROAS with 1M daily spend
 CAMPAIGN_TIERS = {
-    # Hero Tier: 200k/day, Target ROAS 5x initially
+    # Hero Tier: 400k/day each (800k total)
     'hero': {
-        'campaigns': [445446513, 447589870],  # Top 2 by current budget
-        'target_budget': 200000,
-        'target_roas': 5.0,
+        'campaigns': [445446513, 447589870],
+        'target_budget': 400000,  # 400k each
+        'target_roas': 7.0,  # Target for Month 6
         'priority': 'high'
     },
-    # Growth Tier: 100k/day, Target ROAS 4x initially  
+    # Growth Tier: 100k/day each (200k total)
     'growth': {
         'campaigns': [445311693, 452411592],
         'target_budget': 100000,
-        'target_roas': 4.0,
+        'target_roas': 6.0,
         'priority': 'medium'
     },
-    # Test Tier: 50k/day, Target ROAS 3x initially
+    # Test Tier: Pause or keep minimal
     'test': {
         'campaigns': [445335702],
-        'target_budget': 50000,
-        'target_roas': 3.0,
+        'target_budget': 0,  # Pause - reallocate to heroes
+        'target_roas': 5.0,
         'priority': 'low'
     }
 }
 
-print('\n🎯 12x ROAS STRATEGY: Phase 1 - Foundation')
+print('\n🎯 AGGRESSIVE MODE: Month 6 Target')
 print('='*70)
-print('Restructuring 5 campaigns into 3 tiers:')
-print('  HERO (2 campaigns): Rp 200k/day, ROAS target 5x')
-print('  GROWTH (2 campaigns): Rp 100k/day, ROAS target 4x')
-print('  TEST (1 campaign): Rp 50k/day, ROAS target 3x')
+print('Campaign Restructure for 1M Daily Spend:')
+print('  HERO (2 campaigns): Rp 400k each = Rp 800k/day, ROAS 7x')
+print('  GROWTH (2 campaigns): Rp 100k each = Rp 200k/day, ROAS 6x')
+print('  TOTAL TARGET: Rp 1M/day with 7x ROAS')
 print('='*70)
 print('\n📊 STEP 1: Fetching campaigns...')
 campaigns_data = make_request('/api/v2/ads/get_product_level_campaign_id_list', {
