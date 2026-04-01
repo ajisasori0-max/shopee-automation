@@ -149,7 +149,64 @@ def pause_campaign(campaign_id):
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
-# Step 1: Get all campaigns
+def restructure_campaign_budget(campaign_id, target_budget):
+    """Restructure campaign to target budget for 12x ROAS strategy."""
+    try:
+        ts = int(time.time())
+        path = '/api/v2/ads/edit_manual_product_ads'
+        base = f"{PARTNER_ID}{path}{ts}{access_token}{SHOP_ID}"
+        sign = hmac.new(PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+        
+        url = f"{BASE_URL}{path}?partner_id={PARTNER_ID}&timestamp={ts}&sign={sign}&shop_id={SHOP_ID}&access_token={access_token}"
+        
+        body = {
+            'campaign_id': campaign_id,
+            'reference_id': f'restructure_{int(time.time())}',
+            'edit_action': 'change_budget',
+            'budget': target_budget
+        }
+        
+        resp = requests.post(url, json=body, timeout=10)
+        data = resp.json()
+        
+        if 'response' in data:
+            return {'success': True, 'campaign_id': campaign_id, 'new_budget': target_budget}
+        return {'success': False, 'error': data.get('error', 'Unknown')}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+# 12x ROAS Campaign Strategy - Restructure Settings
+CAMPAIGN_TIERS = {
+    # Hero Tier: 200k/day, Target ROAS 5x initially
+    'hero': {
+        'campaigns': [445446513, 447589870],  # Top 2 by current budget
+        'target_budget': 200000,
+        'target_roas': 5.0,
+        'priority': 'high'
+    },
+    # Growth Tier: 100k/day, Target ROAS 4x initially  
+    'growth': {
+        'campaigns': [445311693, 452411592],
+        'target_budget': 100000,
+        'target_roas': 4.0,
+        'priority': 'medium'
+    },
+    # Test Tier: 50k/day, Target ROAS 3x initially
+    'test': {
+        'campaigns': [445335702],
+        'target_budget': 50000,
+        'target_roas': 3.0,
+        'priority': 'low'
+    }
+}
+
+print('\n🎯 12x ROAS STRATEGY: Phase 1 - Foundation')
+print('='*70)
+print('Restructuring 5 campaigns into 3 tiers:')
+print('  HERO (2 campaigns): Rp 200k/day, ROAS target 5x')
+print('  GROWTH (2 campaigns): Rp 100k/day, ROAS target 4x')
+print('  TEST (1 campaign): Rp 50k/day, ROAS target 3x')
+print('='*70)
 print('\n📊 STEP 1: Fetching campaigns...')
 campaigns_data = make_request('/api/v2/ads/get_product_level_campaign_id_list', {
     'ad_type': 'all', 'offset': 0, 'limit': 100
@@ -193,29 +250,46 @@ print(f'   Total GMV: Rp {total_gmv:,.0f}')
 print(f'   Overall ROAS: {shop_roas:.2f}x')
 print(f'   Overall CTR: {ctr:.2f}%')
 
-# Step 3: Get individual campaign details and performance
-print('\n🔍 STEP 3: Analyzing individual campaigns...')
+# Step 3: Get individual campaign details and RESTRUCTURE
+print('\n🔍 STEP 3: Analyzing and restructuring campaigns...')
 campaign_details = []
 
-for camp in campaigns[:10]:  # Top 10
-    camp_id = camp.get('campaign_id')
-    
-    # Get campaign details
-    detail_data = make_request('/api/v2/ads/get_product_level_campaign_setting_info', {
-        'campaign_id_list': str(camp_id), 'info_type_list': '1'
-    })
-    
-    if 'response' in detail_data and 'campaign_list' in detail_data['response']:
-        camp_detail = detail_data['response']['campaign_list'][0]
-        common = camp_detail.get('common_info', {})
-        
-        campaign_details.append({
-            'id': camp_id,
-            'name': common.get('ad_name', 'Unnamed')[:40],
-            'status': common.get('campaign_status', 'unknown'),
-            'budget': common.get('campaign_budget', 0),
-            'ad_type': common.get('ad_type', 'manual')
+for tier_name, tier_config in CAMPAIGN_TIERS.items():
+    print(f'\n   📋 {tier_name.upper()} TIER:')
+    for camp_id in tier_config['campaigns']:
+        # Get campaign details
+        detail_data = make_request('/api/v2/ads/get_product_level_campaign_setting_info', {
+            'campaign_id_list': str(camp_id), 'info_type_list': '1'
         })
+        
+        if 'response' in detail_data and 'campaign_list' in detail_data['response']:
+            camp_detail = detail_data['response']['campaign_list'][0]
+            common = camp_detail.get('common_info', {})
+            current_budget = common.get('campaign_budget', 0)
+            target_budget = tier_config['target_budget']
+            
+            print(f'     - ID {camp_id}: {common.get("ad_name", "Unnamed")[:35]}...')
+            print(f'       Current: Rp {current_budget:,} → Target: Rp {target_budget:,}')
+            
+            # Auto-adjust budget if different
+            if AUTO_ADJUST_ENABLED and abs(current_budget - target_budget) > 5000:
+                result = restructure_campaign_budget(camp_id, target_budget)
+                if result['success']:
+                    actions_taken.append(f"Restructured campaign {camp_id} to Rp {target_budget:,}")
+                    print(f'       ✅ Budget adjusted!')
+                else:
+                    print(f'       ⚠️ Adjustment failed: {result.get("error", "Unknown")}')
+            
+            campaign_details.append({
+                'id': camp_id,
+                'name': common.get('ad_name', 'Unnamed')[:40],
+                'status': common.get('campaign_status', 'unknown'),
+                'budget': current_budget,
+                'target_budget': target_budget,
+                'tier': tier_name,
+                'target_roas': tier_config['target_roas'],
+                'ad_type': common.get('ad_type', 'manual')
+            })
 
 # Step 4: Generate recommendations and auto-adjust
 print('\n🎯 STEP 4: Generating recommendations and auto-adjusting...')
