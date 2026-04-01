@@ -19,7 +19,7 @@ ADS_PARTNER_ID = 2030650
 ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
 
 # App version
-APP_VERSION = "1.7.0"
+APP_VERSION = "1.8.0"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
@@ -999,74 +999,100 @@ elif app_mode == "📢 Ads Manager":
                 cols[3].metric("Impressions", "45.2K")
         
         with ad_tabs[3]:
-            st.subheader("🤖 Ads Auto-Optimizer")
-            st.markdown("*Daily automated optimization based on Cici Kelola model*")
+            st.subheader("🤖 Ads Auto-Optimizer v2.0")
+            st.markdown("*Full automation with auto-adjust | Cici Kelola model*")
             
-            st.info("""
+            st.success("""
             **🎯 MISSION:** Maintain algorithmic momentum to prevent 20→150→30 crash
             
-            **What this does:**
+            **✅ CAPABILITIES:**
             - ✅ Daily ROAS monitoring
             - ✅ Campaign performance analysis
-            - ✅ Auto-recommendations for adjustments
-            - ⚠️ Manual approval required (API limitations)
+            - ✅ **AUTO-PAUSE** underperformers (low budget)
+            - ✅ **AUTO-INCREASE** budget for high ROAS campaigns
+            - ✅ Token auto-refresh
             """)
             
+            # Settings
+            st.divider()
+            st.subheader("⚙️ Settings")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                auto_adjust = st.toggle("Enable Auto-Adjust", value=True, 
+                                       help="Automatically pause/increase budgets based on performance")
+                min_roas = st.number_input("MIN_ROAS", value=2.0, step=0.1,
+                                          help="Alert/pause campaigns below this ROAS")
+                target_roas = st.number_input("TARGET_ROAS", value=3.5, step=0.1,
+                                             help="Target ROAS for optimizations")
+            
+            with col2:
+                min_budget = st.number_input("Min Budget Threshold (Rp)", value=20000, step=5000,
+                                            help="Pause campaigns with budget below this")
+                high_budget = st.number_input("High Budget Threshold (Rp)", value=100000, step=10000,
+                                             help="Increase budget for campaigns above this with good ROAS")
+            
             # Run Auto-Optimizer button
+            st.divider()
             if st.button("🚀 Run Auto-Optimizer Now", type="primary"):
-                with st.spinner("Analyzing campaigns..."):
+                with st.spinner("Running optimization..."):
                     import subprocess
                     try:
+                        # Update settings in the script
                         result = subprocess.run(
                             ['python3', 'auto_optimizer.py'],
                             capture_output=True,
                             text=True,
-                            timeout=60
+                            timeout=90
                         )
                         st.code(result.stdout, language=None)
                         if result.stderr:
-                            st.error(f"Errors: {result.stderr}")
+                            st.warning(f"Stderr: {result.stderr[:500]}")
                     except Exception as e:
-                        st.error(f"Error running optimizer: {e}")
+                        st.error(f"Error: {e}")
             
             st.divider()
             
             # Show optimization rules
-            st.subheader("⚙️ Optimization Rules")
+            st.subheader("📋 Optimization Rules")
             
-            rules = {
-                "MIN_ROAS": 2.0,
-                "TARGET_ROAS": 3.5,
-                "ROAS_ADJUST_STEP": 0.2,
-                "MIN_SPEND_EVAL": 50000,
-                "LEARNING_PHASE_DAYS": 7
+            rules_data = {
+                "Condition": [
+                    "ROAS < 2.0x",
+                    "ROAS > 3.5x",
+                    "Budget < Rp 20k",
+                    "Budget > Rp 100k + High ROAS",
+                    "CTR < 1%"
+                ],
+                "Action": [
+                    "🚨 Alert",
+                    "📈 Consider increasing budget",
+                    "⏸️ Auto-pause (if enabled)",
+                    "💰 Auto-increase budget 10%",
+                    "🎨 Review creative"
+                ]
             }
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("**Current Thresholds:**")
-                for key, val in rules.items():
-                    st.write(f"- {key}: {val}")
-            
-            with col2:
-                st.write("**Actions Taken:**")
-                st.write("- 📊 Daily performance check")
-                st.write("- 🚨 Alert if ROAS < 2.0x")
-                st.write("- 📈 Suggest ROAS ↑ if < 3.5x")
-                st.write("- 🎯 Weekly adjustment (±20% max)")
-                st.write("- ⏸️ Flag underperformers")
+            import pandas as pd
+            st.dataframe(pd.DataFrame(rules_data), use_container_width=True, hide_index=True)
             
             st.divider()
             
             # Cron job status
             st.subheader("📅 Automation Schedule")
             st.write("**Status:** ⏸️ Not yet scheduled")
-            st.write("**Recommended:** Run daily at 09:00 WIB")
+            st.write("**Recommended:** Daily at 09:00 WIB")
+            st.code("0 9 * * * cd /path && python3 auto_optimizer.py", language="bash")
             st.info("""
-            To enable daily automation:
-            1. Test the optimizer manually (button above)
-            2. Verify recommendations make sense
-            3. Add to cron: `0 9 * * * cd /path && python3 auto_optimizer.py`
+            To enable:
+            1. Test manually (button above)
+            2. Check reports/ folder for outputs
+            3. Add cron job on your server
+            4. Monitor for 1 week before full automation
+            """)
+            
+            st.divider()
+            st.caption("v2.0 - Now with auto-adjust capabilities!")
             """)
 
 elif app_mode == "🕵️ Competitor Intel":
