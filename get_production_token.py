@@ -17,7 +17,7 @@ SHOP_ID = 1147948100
 
 # YOU NEED TO GET THIS FROM SHOPEE OPEN PLATFORM
 # Go to: https://open.shopee.com → My Apps → Your App → App Details
-PARTNER_KEY = "YOUR_LIVE_PARTNER_KEY_HERE"  # ← FILL THIS IN
+PARTNER_KEY = "shpk44444e634d6668466c5073776b45646454774a7975706d47497063526453"
 
 def generate_sign(partner_id, path, timestamp, partner_key):
     """Generate HMAC-SHA256 signature."""

@@ -15,12 +15,16 @@ PARTNER_KEY = 'shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69'
 SHOP_ID = 1147948100
 BASE_URL = "https://partner.shopeemobile.com"
 
-# Thresholds
-MIN_ROAS = 2.0
-TARGET_ROAS = 3.5
+# Thresholds - PHASE 1: Foundation (Week 1-2)
+MIN_ROAS = 4.0  # Starting minimum (scale to 10-12x in Phase 3)
+TARGET_ROAS = 5.0  # Starting target (was 3.5, scale to 12x gradually)
 ROAS_ADJUST_STEP = 0.2
 MIN_SPEND = 50000
-AUTO_ADJUST_ENABLED = True  # Set to False for recommendations only
+AUTO_ADJUST_ENABLED = True
+
+# 12x ROAS Strategy
+MAX_DAILY_BUDGET = 500000
+LEARNING_PHASE_DAYS = 7
 
 print('='*70)
 print('🤖 SHOPEE ADS AUTO-OPTIMIZER v2.0')

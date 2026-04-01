@@ -184,9 +184,10 @@ class ShopeeClient:
     
     # ===== PRODUCT APIs =====
     
-    def get_product_list(self, page_size=10):
+    def get_product_list(self, page_size=10, item_status="NORMAL"):
         """Get list of products."""
-        return self.call_api("GET", "/api/v2/product/get_item_list", params={"page_size": page_size})
+        return self.call_api("GET", "/api/v2/product/get_item_list", 
+                           params={"page_size": page_size, "item_status": item_status})
     
     def get_product_detail(self, item_id):
         """Get product details."""

@@ -19,7 +19,7 @@ ADS_PARTNER_ID = 2030650
 ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
 
 # App version
-APP_VERSION = "1.8.0"
+APP_VERSION = "1.8.1"
 
 # ============================================================================
 # MOCK DATA (Fallback when APIs fail)
