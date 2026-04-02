@@ -1093,7 +1093,6 @@ elif app_mode == "📢 Ads Manager":
             
             st.divider()
             st.caption("v2.0 - Now with auto-adjust capabilities!")
-            """)
 
 elif app_mode == "🕵️ Competitor Intel":
     st.title("🕵️ Competitor Intelligence")
