@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-04-06T20:13:41.449693",
+  "recommendations": [
+    {
+      "type": "warning",
+      "message": "ROAS 0.0x below minimum (4x). Check listings/audience."
+    }
+  ],
+  "status": "pending_approval"
+}
