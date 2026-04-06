@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Shopee Ads Semi-Auto Optimizer v2.0
-7x ROAS Target | 500k Daily | ASK BEFORE ADJUSTING
+Shopee Ads Semi-Auto Optimizer v2.1
+6 Campaigns | 980k Daily | 7x ROAS Target | ASK BEFORE ADJUSTING
 """
 
 import requests
@@ -20,11 +20,16 @@ SHOP_ID = 1147948100
 BASE_URL = "https://partner.shopeemobile.com"
 
 # PHASE 1: 7x ROAS Target (Building trust)
+# ALL 6 ACTIVE CAMPAIGNS - Total: 981k
 CAMPAIGNS = [
     {'id': 445446513, 'name': 'Hero 1', 'target_budget': 250000, 'target_roas': 7.0, 'min_roas': 4.0},
-    {'id': 447589870, 'name': 'Hero 2', 'target_budget': 250000, 'target_roas': 7.0, 'min_roas': 4.0},
+    {'id': 447589870, 'name': 'Hero 2', 'target_budget': 230000, 'target_roas': 7.0, 'min_roas': 4.0},
+    {'id': 445311693, 'name': 'Growth 1', 'target_budget': 150000, 'target_roas': 6.0, 'min_roas': 3.5},
+    {'id': 452409640, 'name': 'Growth 2', 'target_budget': 150000, 'target_roas': 6.0, 'min_roas': 3.5},
+    {'id': 452411592, 'name': 'Test 1', 'target_budget': 100000, 'target_roas': 5.0, 'min_roas': 3.0},
+    {'id': 445335702, 'name': 'Test 2', 'target_budget': 100000, 'target_roas': 5.0, 'min_roas': 3.0},
 ]
-TOTAL_TARGET_BUDGET = 500000
+TOTAL_TARGET_BUDGET = 980000
 PHASE_TARGET_ROAS = 7.0  # Step toward 12x
 
 # Semi-auto mode - recommendations saved, you approve via Telegram
