@@ -208,28 +208,68 @@ def boost_products():
             print(f"⏳ Boost skipped - {4 - hours_since:.1f} hours until next boost")
             return False
     
-    # Get top products using SELLER app
-    items = make_request('/api/v2/product/get_item_list', {
-        'page_size': '5', 
-        'item_status': 'NORMAL',
-        'offset': '0'
-    }, token_file='tokens_production.json', partner_id=SELLER_PARTNER_ID, partner_key=SELLER_PARTNER_KEY)
-    
-    if 'response' not in items or 'item' not in items['response']:
-        print("❌ No items found to boost")
+    # Get valid token for seller app
+    access_token = refresh_token('tokens_production.json', SELLER_PARTNER_ID, SELLER_PARTNER_KEY)
+    if not access_token:
+        print("❌ Could not get valid token")
         return False
     
-    item_ids = [item['item_id'] for item in items['response']['item'][:5]]
-    print(f"Boosting items: {item_ids}")
+    # Step 1: Get item list
+    ts = int(time.time())
+    path = '/api/v2/product/get_item_list'
+    base = f'{SELLER_PARTNER_ID}{path}{ts}{access_token}{SHOP_ID}'
+    sign = hmac.new(SELLER_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
     
-    # Boost items using SELLER app
-    boost_result = make_request('/api/v2/product/boost_item', 
-        method='POST', 
-        body={'item_id_list': item_ids},
-        token_file='tokens_production.json', 
-        partner_id=SELLER_PARTNER_ID, 
-        partner_key=SELLER_PARTNER_KEY
-    )
+    url = f'{BASE_URL}{path}'
+    params = {
+        'partner_id': SELLER_PARTNER_ID,
+        'timestamp': ts,
+        'sign': sign,
+        'access_token': access_token,
+        'shop_id': SHOP_ID,
+        'offset': '0',
+        'page_size': '5',
+        'item_status': 'NORMAL'
+    }
+    
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        items_data = resp.json()
+    except Exception as e:
+        print(f"❌ Error getting items: {e}")
+        return False
+    
+    if 'response' not in items_data or 'item' not in items_data['response']:
+        print(f"❌ No items found: {items_data.get('error', 'Unknown error')}")
+        return False
+    
+    item_list = items_data['response']['item'][:5]
+    item_ids = [item['item_id'] for item in item_list]
+    print(f"Found {len(item_ids)} items to boost: {item_ids}")
+    
+    # Step 2: Boost items
+    ts2 = int(time.time())
+    path2 = '/api/v2/product/boost_item'
+    base2 = f'{SELLER_PARTNER_ID}{path2}{ts2}{access_token}{SHOP_ID}'
+    sign2 = hmac.new(SELLER_PARTNER_KEY.encode(), base2.encode(), hashlib.sha256).hexdigest()
+    
+    url2 = f'{BASE_URL}{path2}'
+    params2 = {
+        'partner_id': SELLER_PARTNER_ID,
+        'timestamp': ts2,
+        'sign': sign2,
+        'access_token': access_token,
+        'shop_id': SHOP_ID
+    }
+    
+    body = {'item_id_list': item_ids}
+    
+    try:
+        resp2 = requests.post(url2, params=params2, json=body, timeout=10)
+        boost_result = resp2.json()
+    except Exception as e:
+        print(f"❌ Error boosting: {e}")
+        return False
     
     # Log the boost
     with open(BOOST_LOG, 'w') as f:
@@ -239,11 +279,12 @@ def boost_products():
             'result': boost_result
         }, f, indent=2)
     
-    if 'error' in boost_result:
+    if boost_result.get('error'):
         print(f"❌ Boost failed: {boost_result.get('message', 'Unknown error')}")
         return False
     
-    print(f"✅ Boosted {len(item_ids)} products successfully")
+    success_count = len(boost_result.get('response', {}).get('success_list', {}).get('item_id_list', []))
+    print(f"✅ Successfully boosted {success_count} products")
     return True
 
 def send_report(report, targets, recommendations, action):
