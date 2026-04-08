@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Shopee Full Automation v3.1 - PROPER VERSION
-- Ads App (2030650): Reports & campaign data
-- Seller In-House (2030653): Product boost
-- Real ROAS vs targets
-- 7-day stabilization rule
+Shopee Full Automation v3.5
+- Auto token refresh
+- Daily reports with BOTH direct and broad GMV
+- Product boost every 4 hours (tries multiple batches until 5 succeed)
+- Zero manual intervention
 """
 
 import requests
@@ -193,7 +193,7 @@ def generate_recommendations(report, targets, last_change_date=None):
     return recs, action
 
 def boost_products():
-    """Boost top 5 products using SELLER app."""
+    """Boost top 5 available products using SELLER app."""
     # Check last boost time
     last_boost = None
     if os.path.exists(BOOST_LOG):
@@ -216,78 +216,100 @@ def boost_products():
         print("❌ Could not get valid token")
         return False
     
-    # Step 1: Get item list
-    ts = int(time.time())
-    path = '/api/v2/product/get_item_list'
-    base = f'{SELLER_PARTNER_ID}{path}{ts}{access_token}{SHOP_ID}'
-    sign = hmac.new(SELLER_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+    # Try to boost products - keep trying different ones until we get 5 successes
+    all_boosted = []
+    offset = 0
+    max_attempts = 4  # Try up to 20 products (4 batches of 5)
     
-    url = f'{BASE_URL}{path}'
-    params = {
-        'partner_id': SELLER_PARTNER_ID,
-        'timestamp': ts,
-        'sign': sign,
-        'access_token': access_token,
-        'shop_id': SHOP_ID,
-        'offset': '0',
-        'page_size': '5',
-        'item_status': 'NORMAL'
-    }
-    
-    try:
-        resp = requests.get(url, params=params, timeout=10)
-        items_data = resp.json()
-    except Exception as e:
-        print(f"❌ Error getting items: {e}")
-        return False
-    
-    if 'response' not in items_data or 'item' not in items_data['response']:
-        print(f"❌ No items found: {items_data.get('error', 'Unknown error')}")
-        return False
-    
-    item_list = items_data['response']['item'][:5]
-    item_ids = [item['item_id'] for item in item_list]
-    print(f"Found {len(item_ids)} items to boost: {item_ids}")
-    
-    # Step 2: Boost items
-    ts2 = int(time.time())
-    path2 = '/api/v2/product/boost_item'
-    base2 = f'{SELLER_PARTNER_ID}{path2}{ts2}{access_token}{SHOP_ID}'
-    sign2 = hmac.new(SELLER_PARTNER_KEY.encode(), base2.encode(), hashlib.sha256).hexdigest()
-    
-    url2 = f'{BASE_URL}{path2}'
-    params2 = {
-        'partner_id': SELLER_PARTNER_ID,
-        'timestamp': ts2,
-        'sign': sign2,
-        'access_token': access_token,
-        'shop_id': SHOP_ID
-    }
-    
-    body = {'item_id_list': item_ids}
-    
-    try:
-        resp2 = requests.post(url2, params=params2, json=body, timeout=10)
-        boost_result = resp2.json()
-    except Exception as e:
-        print(f"❌ Error boosting: {e}")
-        return False
+    while len(all_boosted) < 5 and offset < max_attempts * 5:
+        # Get items
+        ts = int(time.time())
+        path = '/api/v2/product/get_item_list'
+        base = f'{SELLER_PARTNER_ID}{path}{ts}{access_token}{SHOP_ID}'
+        sign = hmac.new(SELLER_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+        
+        url = f'{BASE_URL}{path}'
+        params = {
+            'partner_id': SELLER_PARTNER_ID,
+            'timestamp': ts,
+            'sign': sign,
+            'access_token': access_token,
+            'shop_id': SHOP_ID,
+            'offset': str(offset),
+            'page_size': '5',
+            'item_status': 'NORMAL'
+        }
+        
+        try:
+            resp = requests.get(url, params=params, timeout=10)
+            items_data = resp.json()
+        except Exception as e:
+            print(f"❌ Error getting items: {e}")
+            break
+        
+        if 'response' not in items_data or 'item' not in items_data['response']:
+            break
+        
+        item_list = items_data['response']['item'][:5]
+        if not item_list:
+            break
+        
+        item_ids = [item['item_id'] for item in item_list]
+        
+        # Try to boost these items
+        ts2 = int(time.time())
+        path2 = '/api/v2/product/boost_item'
+        base2 = f'{SELLER_PARTNER_ID}{path2}{ts2}{access_token}{SHOP_ID}'
+        sign2 = hmac.new(SELLER_PARTNER_KEY.encode(), base2.encode(), hashlib.sha256).hexdigest()
+        
+        url2 = f'{BASE_URL}{path2}'
+        params2 = {
+            'partner_id': SELLER_PARTNER_ID,
+            'timestamp': ts2,
+            'sign': sign2,
+            'access_token': access_token,
+            'shop_id': SHOP_ID
+        }
+        
+        body = {'item_id_list': item_ids}
+        
+        try:
+            resp2 = requests.post(url2, params=params2, json=body, timeout=10)
+            boost_result = resp2.json()
+        except Exception as e:
+            print(f"❌ Error boosting: {e}")
+            break
+        
+        # Check which items succeeded
+        success_list = boost_result.get('response', {}).get('success_list', {}).get('item_id_list', [])
+        failure_list = boost_result.get('response', {}).get('failure_list', [])
+        
+        all_boosted.extend(success_list)
+        
+        if success_list:
+            print(f"✅ Boosted {len(success_list)} items: {success_list}")
+        
+        if failure_list:
+            failed_reasons = [f"{f['item_id']}: {f['failed_reason']}" for f in failure_list]
+            print(f"⏭️  Skipped {len(failure_list)} (cooldown): {failed_reasons}")
+        
+        # Move to next batch
+        offset += 5
     
     # Log the boost
     with open(BOOST_LOG, 'w') as f:
         json.dump({
             'last_boost': datetime.now().isoformat(),
-            'items_boosted': item_ids,
-            'result': boost_result
+            'items_boosted': all_boosted,
+            'total_attempted': offset
         }, f, indent=2)
     
-    if boost_result.get('error'):
-        print(f"❌ Boost failed: {boost_result.get('message', 'Unknown error')}")
+    if all_boosted:
+        print(f"✅ Total boosted: {len(all_boosted)} products")
+        return True
+    else:
+        print("⚠️ No products available to boost (all in cooldown or daily limit reached)")
         return False
-    
-    success_count = len(boost_result.get('response', {}).get('success_list', {}).get('item_id_list', []))
-    print(f"✅ Successfully boosted {success_count} products")
-    return True
 
 def send_report(report, targets, recommendations, action):
     """Send formatted report."""
