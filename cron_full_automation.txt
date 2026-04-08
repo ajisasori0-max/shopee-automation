@@ -1,0 +1,7 @@
+# Shopee Full Automation - Runs every hour
+# - 09:00: Daily report with accurate GMV data
+# - Every 4 hours: Auto product boost (5 products)
+# - Auto token refresh (no manual intervention)
+
+# Run every hour
+0 * * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && /usr/local/bin/python3 full_automation.py >> logs/automation_$(date +&\#37;Y&\#37;m&\#37;d).log 2>&1

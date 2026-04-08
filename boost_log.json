@@ -1,0 +1,15 @@
+{
+  "last_boost": "2026-04-08T15:44:35.720483",
+  "items_boosted": [
+    24347685929,
+    25147665902,
+    52600096150,
+    56101207407,
+    53150101278
+  ],
+  "result": {
+    "error": "error_api_permission",
+    "message": "This app type has no permission to this API.",
+    "request_id": "e3e3e7f34eeee8d4ef18d3595ffce000"
+  }
+}
