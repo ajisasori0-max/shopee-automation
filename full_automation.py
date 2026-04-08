@@ -204,8 +204,10 @@ def boost_products():
     if last_boost:
         last_time = datetime.fromisoformat(last_boost)
         hours_since = (datetime.now() - last_time).total_seconds() / 3600
-        if hours_since < 4:
-            print(f"⏳ Boost skipped - {4 - hours_since:.1f} hours until next boost")
+        # Need 4 hours + 5 minutes buffer (not exact 4 hours)
+        if hours_since < 4.1:  # 4 hours and 6 minutes
+            minutes_until = (4.1 - hours_since) * 60
+            print(f"⏳ Boost in {minutes_until:.0f} minutes (4h+ buffer)")
             return False
     
     # Get valid token for seller app

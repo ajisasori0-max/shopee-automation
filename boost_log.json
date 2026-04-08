@@ -1,5 +1,5 @@
 {
-  "last_boost": "2026-04-08T15:44:35.720483",
+  "last_boost": "2026-04-08T20:35:24.597869",
   "items_boosted": [
     24347685929,
     25147665902,
@@ -8,8 +8,13 @@
     53150101278
   ],
   "result": {
-    "error": "error_api_permission",
-    "message": "This app type has no permission to this API.",
-    "request_id": "e3e3e7f34eeee8d4ef18d3595ffce000"
+    "error": "product.error_busi",
+    "message": "reached shop's bump slot limit",
+    "request_id": "e3e3e7f34ef2f8e03cac96b2873cfb00:02000026013ab329:010002daf4d8eec9",
+    "response": {
+      "success_list": {
+        "item_id_list": []
+      }
+    }
   }
 }
