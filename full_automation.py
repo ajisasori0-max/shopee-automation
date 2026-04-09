@@ -311,11 +311,49 @@ def boost_products():
         print("⚠️ No products available to boost (all in cooldown or daily limit reached)")
         return False
 
+def send_telegram_message(message):
+    """Send message to Telegram."""
+    try:
+        # Get bot token from OpenClaw config
+        import subprocess
+        result = subprocess.run(
+            ["grep", "-A1", "botToken", "~/.openclaw/openclaw.json"],
+            capture_output=True, text=True, shell=False
+        )
+        # Fallback: read directly
+        with open(os.path.expanduser('~/.openclaw/openclaw.json'), 'r') as f:
+            config = json.load(f)
+        
+        bot_token = config.get('channels', {}).get('telegram', {}).get('botToken')
+        chat_id = "6910422824"  # Your Telegram user ID from conversation
+        
+        if not bot_token:
+            print("❌ No bot token found")
+            return False
+        
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {
+            'chat_id': chat_id,
+            'text': message,
+            'parse_mode': 'HTML'
+        }
+        
+        resp = requests.post(url, json=payload, timeout=10)
+        if resp.status_code == 200:
+            print("✅ Telegram message sent")
+            return True
+        else:
+            print(f"❌ Telegram error: {resp.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Telegram send failed: {e}")
+        return False
+
 def send_report(report, targets, recommendations, action):
     """Send formatted report."""
     target_str = f"{min(t['target'] for t in targets):.1f}-{max(t['target'] for t in targets):.1f}" if targets else "5.0-5.4"
     
-    msg = f"""🎯 Shopee Daily Report - {report['date']}
+    msg = f"""🎯 <b>Shopee Daily Report - {report['date']}</b>
 
 💰 Spend: Rp {report['spend']:,}
 📊 GMV: Rp {report['gmv']:,}
@@ -323,8 +361,7 @@ def send_report(report, targets, recommendations, action):
 🎯 Target: {target_str}x
 🛒 Orders: {report['orders']}
 
-📋 RECOMMENDATION: {action}
-"""
+📋 RECOMMENDATION: {action}"""
     
     for rec in recommendations:
         msg += f"\n{rec}"
@@ -334,10 +371,13 @@ def send_report(report, targets, recommendations, action):
 ⚡ NEXT STEPS:
 • Monitor daily
 • No changes for 7 days after adjustments
-• Product boost runs every 4 hours automatically
-"""
+• Product boost runs every 4 hours automatically"""
     
     print(msg)
+    
+    # Also send to Telegram
+    send_telegram_message(msg)
+    
     return msg
 
 def main():
