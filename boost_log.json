@@ -1,5 +1,5 @@
 {
-  "last_boost": "2026-04-08T20:38:40.185702",
+  "last_boost": "2026-04-09T06:00:02.434357",
   "items_boosted": [
     24347685929,
     25147665902,
@@ -7,14 +7,5 @@
     56101207407,
     53150101278
   ],
-  "result": {
-    "error": "product.error_busi",
-    "message": "reached shop's bump slot limit",
-    "request_id": "e3e3e7f34ef30488145e6b0e7352ed00:02000010824d40e2:010002e87a6480ef",
-    "response": {
-      "success_list": {
-        "item_id_list": []
-      }
-    }
-  }
+  "total_attempted": 5
 }

@@ -4,4 +4,4 @@
 # - Auto token refresh (no manual intervention)
 
 # Run every hour
-0 * * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && /usr/local/bin/python3 full_automation.py >> logs/automation_$(date +&\#37;Y&\#37;m&\#37;d).log 2>&1
+0 * * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && /usr/local/bin/python3 full_automation.py >> logs/automation_$(date +\%Y\%m\%d).log 2>&1
