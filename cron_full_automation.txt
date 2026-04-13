@@ -1,8 +1,8 @@
 #!/bin/zsh
-# Shopee Full Automation - Runs every hour
+# Shopee Full Automation - Runs every 15 minutes
 # - 09:00: Daily report with accurate GMV data
 # - Every 4 hours: Auto product boost (5 products)
 # - Auto token refresh (no manual intervention)
 
-# Run every hour
-0 * * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && /usr/local/bin/python3 full_automation.py >> /Users/gerard/.openclaw/workspace/shopee-api-onboarding/logs/automation_$(date +\%Y\%m\%d).log 2>&1
+# Run every 15 minutes
+*/15 * * * * cd /Users/gerard/.openclaw/workspace/shopee-api-onboarding && /usr/local/bin/python3 full_automation.py >> /Users/gerard/.openclaw/workspace/shopee-api-onboarding/logs/automation_$(date +\%Y\%m\%d).log 2>&1
