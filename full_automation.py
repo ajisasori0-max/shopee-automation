@@ -383,9 +383,9 @@ def send_report(report, targets, recommendations, action):
 def main():
     print(f"[{datetime.now()}] Starting Full Automation v3.1")
     
-    # 1. Daily Report (09:00 only)
-    hour = datetime.now().hour
-    if hour == 9:
+    # 1. Daily Report (09:00 only — once per day)
+    now = datetime.now()
+    if now.hour == 9 and now.minute < 15:  # Only in first 15-min window
         print("📊 Generating 09:00 report...")
         
         report = get_daily_report()
