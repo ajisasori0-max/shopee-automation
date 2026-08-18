@@ -31,12 +31,24 @@ from commerceos.platform.secrets import SecretManager, workspace_secret_manager
 _secret_manager = workspace_secret_manager()
 
 # If you need to exchange tokens for a different shop, set this env var.
-SHOP_ID = int(os.environ.get("SHOPEE_SHOP_ID_OVERRIDE") or _secret_manager.get_required(secrets.STORE_SHOPEE_SHOP_ID))
 BASE_URL = "https://partner.shopeemobile.com"
 
 # Render / production deployments should point token storage at a persistent
 # volume. Falls back to the current working directory for local development.
 TOKEN_WORKSPACE = os.environ.get("COMMERCEOS_TOKEN_WORKSPACE", ".")
+
+
+def _shop_id() -> int:
+    """Return the Shopee shop ID from environment or secrets.
+
+    Lazy evaluation avoids crashing at import time when secrets are not yet
+    initialized (e.g., during Render deployment startup).
+    """
+    override = os.environ.get("SHOPEE_SHOP_ID_OVERRIDE")
+    if override:
+        return int(override)
+    return int(_secret_manager.get_required(secrets.STORE_SHOPEE_SHOP_ID))
+
 
 APPS = {
     "production": {
@@ -76,7 +88,7 @@ class TokenManager:
             **base,
             "partner_id": int(partner_id),
             "partner_key": partner_key,
-            "shop_id": SHOP_ID,
+            "shop_id": _shop_id(),
         }
     
     def _audit(self, action: str, app_name: str, detail: str = ""):
@@ -213,7 +225,7 @@ class TokenManager:
                 params={"partner_id": config["partner_id"], "timestamp": ts, "sign": sign},
                 json={
                     "refresh_token": tokens["refresh_token"],
-                    "shop_id": SHOP_ID,
+                    "shop_id": _shop_id(),
                     "partner_id": config["partner_id"]
                 },
                 timeout=15
@@ -224,7 +236,7 @@ class TokenManager:
                 # Preserve metadata, update tokens
                 new_tokens = {
                     "partner_id": config["partner_id"],
-                    "shop_id": SHOP_ID,
+                    "shop_id": _shop_id(),
                     "access_token": data["access_token"],
                     "refresh_token": data.get("refresh_token", tokens["refresh_token"]),
                     "expire_in": data.get("expire_in", 14400),
@@ -365,7 +377,7 @@ Or use the Streamlit app: streamlit run app.py
             if resp.status_code == 200 and "access_token" in data:
                 tokens = {
                     "partner_id": config["partner_id"],
-                    "shop_id": SHOP_ID,
+                    "shop_id": _shop_id(),
                     "access_token": data["access_token"],
                     "refresh_token": data["refresh_token"],
                     "expire_in": data.get("expire_in", 14400),
