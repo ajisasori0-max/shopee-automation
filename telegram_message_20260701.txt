@@ -1,0 +1,33 @@
+Shopee Daily Monitor Report — 2026-07-01
+
+FALLBACK MODE: API tokens expired. Report generated from historical database (last live data: June 18, 2026).
+
+KEY METRICS
+• ROAS: 3.62x
+• Daily Spend: Rp 41,998
+• Daily Orders: 2.1
+• CTR: 4.86%
+• CPC: Rp 393
+• CPA: Rp 19,599
+• AOV: Rp 70,880
+• Conversion Rate: 2.00%
+
+7-DAY TREND COMPARISON
+• ROAS: 2.84x vs 4.41x (-1.57x)
+• Spend: Rp 296,068 vs Rp 291,906 (+4,162)
+• Orders: 14 vs 16 (-2)
+• Status: ROAS DECLINING
+
+CAMPAIGN BUDGETS
+Campaign data unavailable — API tokens expired.
+Target total budget: Rp 980,000/day across 6 campaigns.
+
+STATUS ALERT
+🚨 EMERGENCY: ROAS BELOW 4.0x — Consider budget cut
+
+TECHNICAL ALERT
+• API tokens expired — manual OAuth re-authorization required
+• Daily monitor script location was incorrect; fixed and ran from workspace
+• Live campaign data unavailable; using fallback database
+
+Report file: daily_reports/report_20260701.txt

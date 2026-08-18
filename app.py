@@ -6,17 +6,30 @@ import hashlib
 import time
 from datetime import datetime, timedelta
 
-# ============================================================================
-# CONFIG - PRODUCTION (SELLER IN-HOUSE)
-# ============================================================================
-PARTNER_ID = 2030653
-SHOP_ID = 1147948100
-PARTNER_KEY = "shpk44444e634d6668466c5073776b45646454774a7975706d47497063526453"
+from commerceos.platform.shopee_config import get_seller_credentials, get_ads_credentials
+from commerceos.platform.tokens import get_access_token, app_name_for_partner_id
+
 BASE_URL = "https://partner.shopeemobile.com"
 
-# ADS APP CONFIG
-ADS_PARTNER_ID = 2030650
-ADS_PARTNER_KEY = "shpk596a6556535573774b4e7742454a4f566e42794c7549736c4c59594c6a69"
+_SELLER_CREDS = None
+_ADS_CREDS = None
+
+
+def seller_creds():
+    """Return cached seller (production) credentials from SecretManager."""
+    global _SELLER_CREDS
+    if _SELLER_CREDS is None:
+        _SELLER_CREDS = get_seller_credentials()
+    return _SELLER_CREDS
+
+
+def ads_creds():
+    """Return cached Ads app credentials from SecretManager."""
+    global _ADS_CREDS
+    if _ADS_CREDS is None:
+        _ADS_CREDS = get_ads_credentials()
+    return _ADS_CREDS
+
 
 # App version
 APP_VERSION = "1.6.3"
@@ -33,166 +46,81 @@ MOCK_PRODUCTS = [
 ]
 
 # ============================================================================
-# TOKEN MANAGEMENT (Auto-refresh)
+# TOKEN MANAGEMENT (Central authority: token_manager.py)
 # ============================================================================
+# IMPORTANT: Only token_manager.py may refresh or write token files.
+# These helpers read the current valid access token through the central
+# provider and never perform independent refreshes or writes.
+
 def load_tokens():
-    """Load tokens from file."""
+    """Load tokens from file for read-only display purposes."""
     try:
         with open('tokens_production.json', 'r') as f:
             return json.load(f)
-    except:
+    except Exception:
         return None
 
 def refresh_tokens():
-    """Refresh access token using refresh_token."""
-    tokens = load_tokens()
-    if not tokens or 'refresh_token' not in tokens:
-        return None
-    
-    try:
-        path = "/api/v2/auth/access_token/get"
-        ts = int(time.time())
-        base = f"{PARTNER_ID}{path}{ts}"
-        sign = hmac.new(PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
-        
-        url = f"{BASE_URL}{path}"
-        resp = requests.post(url, 
-                            params={"partner_id": PARTNER_ID, "timestamp": ts, "sign": sign},
-                            json={"refresh_token": tokens['refresh_token'], "shop_id": SHOP_ID, "partner_id": PARTNER_ID},
-                            timeout=10)
-        data = resp.json()
-        
-        if 'access_token' in data:
-            with open('tokens_production.json', 'w') as f:
-                json.dump(data, f, indent=2)
-            return data
-        return None
-    except:
-        return None
+    """Refresh production access token via central token manager."""
+    return get_access_token('production', force_refresh=True)
 
 def get_valid_tokens():
-    """Get tokens, refreshing if needed."""
+    """Get valid production tokens (access token from central provider)."""
+    access_token = get_access_token('production')
     tokens = load_tokens()
-    if not tokens:
-        return None
-    
-    # Test if current token works
-    ts = int(time.time())
-    base = f"{PARTNER_ID}/api/v2/shop/get_shop_info{ts}{tokens['access_token']}{SHOP_ID}"
-    sign = hmac.new(PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
-    url = f"{BASE_URL}/api/v2/shop/get_shop_info"
-    params = {"partner_id": PARTNER_ID, "timestamp": ts, "sign": sign, "access_token": tokens['access_token'], "shop_id": SHOP_ID}
-    
-    try:
-        resp = requests.get(url, params=params, timeout=5)
-        data = resp.json()
-        if 'shop_name' in data:
-            return tokens  # Token still valid
-    except:
-        pass
-    
-    # Token expired, refresh
-    return refresh_tokens()
+    if tokens:
+        tokens['access_token'] = access_token
+    return tokens
 
-# ADS TOKEN MANAGEMENT (with env var support for Render)
+# ADS TOKEN MANAGEMENT (Central authority)
 def load_ads_tokens():
-    """Load Ads app tokens from env var or file."""
-    # First check environment variable (for Render persistence)
+    """Load Ads app tokens from env var or file for read-only display."""
     import os
     env_tokens = os.environ.get('SHOPEE_ADS_TOKENS')
     if env_tokens:
         try:
             return json.loads(env_tokens)
-        except:
+        except Exception:
             pass
-    
-    # Fall back to file
     try:
         with open('tokens_ads.json', 'r') as f:
             return json.load(f)
-    except:
+    except Exception:
         return None
-
-def save_ads_tokens(tokens):
-    """Save tokens to file (and show env var for Render)."""
-    # Save to file
-    with open('tokens_ads.json', 'w') as f:
-        json.dump(tokens, f, indent=2)
-    
-    # Also print the env var format for Render
-    print("="*70)
-    print("📝 ADD THIS TO RENDER ENVIRONMENT VARIABLES:")
-    print("="*70)
-    print(f"Key: SHOPEE_ADS_TOKENS")
-    print(f"Value: {json.dumps(tokens)}")
-    print("="*70)
 
 def refresh_ads_tokens():
-    """Refresh Ads access token using refresh_token."""
-    tokens = load_ads_tokens()
-    if not tokens or 'refresh_token' not in tokens:
-        return None
-    
-    try:
-        path = "/api/v2/auth/access_token/get"
-        ts = int(time.time())
-        base = f"{ADS_PARTNER_ID}{path}{ts}"
-        sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
-        
-        url = f"{BASE_URL}{path}"
-        resp = requests.post(url, 
-                            params={"partner_id": ADS_PARTNER_ID, "timestamp": ts, "sign": sign},
-                            json={"refresh_token": tokens['refresh_token'], "shop_id": SHOP_ID, "partner_id": ADS_PARTNER_ID},
-                            timeout=10)
-        data = resp.json()
-        
-        if 'access_token' in data:
-            with open('tokens_ads.json', 'w') as f:
-                json.dump(data, f, indent=2)
-            return data
-        return None
-    except:
-        return None
+    """Refresh ads access token via central token manager."""
+    return get_access_token('ads', force_refresh=True)
 
 def get_valid_ads_tokens():
-    """Get Ads tokens, refreshing if needed."""
+    """Get valid ads tokens (access token from central provider)."""
+    access_token = get_access_token('ads')
     tokens = load_ads_tokens()
-    if not tokens:
-        return None
-    
-    # Test if current token works
-    ts = int(time.time())
-    path = '/api/v2/ads/get_total_balance'
-    base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
-    sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
-    url = f"{BASE_URL}{path}"
-    params = {"partner_id": ADS_PARTNER_ID, "timestamp": ts, "sign": sign, "access_token": tokens['access_token'], "shop_id": SHOP_ID}
-    
-    try:
-        resp = requests.get(url, params=params, timeout=5)
-        data = resp.json()
-        if 'response' in data:
-            return tokens  # Token still valid
-    except:
-        pass
-    
-    # Token expired, refresh
-    return refresh_ads_tokens()
+    if tokens:
+        tokens['access_token'] = access_token
+    return tokens
+
+def save_ads_tokens(tokens):
+    """DEPRECATED: Token writes are handled by token_manager.py only."""
+    raise RuntimeError(
+        "Token writes are disabled here. Use token_manager.py --exchange ads <code>."
+    )
 
 # ============================================================================
 # API CALLS (With error handling)
 # ============================================================================
 def call_api(path, access_token, params=None):
     """Make API call with proper signature."""
+    creds = seller_creds()
     ts = int(time.time())
-    base = f"{PARTNER_ID}{path}{ts}{access_token}{SHOP_ID}"
-    sign = hmac.new(PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
-    
+    base = f"{creds['partner_id']}{path}{ts}{access_token}{creds['shop_id']}"
+    sign = hmac.new(creds['partner_key'].encode(), base.encode(), hashlib.sha256).hexdigest()
+
     url = f"{BASE_URL}{path}"
-    query = {"partner_id": PARTNER_ID, "timestamp": ts, "sign": sign, "access_token": access_token, "shop_id": SHOP_ID}
+    query = {"partner_id": creds['partner_id'], "timestamp": ts, "sign": sign, "access_token": access_token, "shop_id": creds['shop_id']}
     if params:
         query.update(params)
-    
+
     try:
         resp = requests.get(url, params=query, timeout=10)
         return resp.json()
@@ -208,20 +136,21 @@ def get_shop_info(tokens):
 
 def get_ad_balance(tokens):
     """Get ad balance using Ads app credentials."""
+    creds = ads_creds()
     ts = int(time.time())
     path = '/api/v2/ads/get_total_balance'
-    base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
-    sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
-    
+    base = f"{creds['partner_id']}{path}{ts}{tokens['access_token']}{creds['shop_id']}"
+    sign = hmac.new(creds['partner_key'].encode(), base.encode(), hashlib.sha256).hexdigest()
+
     url = f"{BASE_URL}{path}"
     params = {
-        'partner_id': ADS_PARTNER_ID,
+        'partner_id': creds['partner_id'],
         'timestamp': ts,
         'sign': sign,
         'access_token': tokens['access_token'],
-        'shop_id': SHOP_ID
+        'shop_id': creds['shop_id']
     }
-    
+
     try:
         resp = requests.get(url, params=params, timeout=10)
         data = resp.json()
@@ -335,24 +264,25 @@ def get_product_details(tokens, item_ids):
 
 def get_ad_campaigns(tokens):
     """Get ad campaigns with full details using product_level_campaign APIs."""
+    creds = ads_creds()
     # Step 1: Get campaign ID list
     ts = int(time.time())
     path = '/api/v2/ads/get_product_level_campaign_id_list'
-    base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
-    sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
-    
+    base = f"{creds['partner_id']}{path}{ts}{tokens['access_token']}{creds['shop_id']}"
+    sign = hmac.new(creds['partner_key'].encode(), base.encode(), hashlib.sha256).hexdigest()
+
     url = f"{BASE_URL}{path}"
     params = {
-        'partner_id': ADS_PARTNER_ID,
+        'partner_id': creds['partner_id'],
         'timestamp': ts,
         'sign': sign,
         'access_token': tokens['access_token'],
-        'shop_id': SHOP_ID,
+        'shop_id': creds['shop_id'],
         'ad_type': 'all',
         'offset': 0,
         'limit': 100
     }
-    
+
     try:
         resp = requests.get(url, params=params, timeout=10)
         data = resp.json()
@@ -375,23 +305,24 @@ def get_ad_campaigns(tokens):
 
 def get_campaign_detail(tokens, campaign_id):
     """Get detailed info for a single campaign."""
+    creds = ads_creds()
     try:
         ts = int(time.time())
         path = '/api/v2/ads/get_product_level_campaign_setting_info'
-        base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
-        sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
-        
+        base = f"{creds['partner_id']}{path}{ts}{tokens['access_token']}{creds['shop_id']}"
+        sign = hmac.new(creds['partner_key'].encode(), base.encode(), hashlib.sha256).hexdigest()
+
         url = f"{BASE_URL}{path}"
         params = {
-            'partner_id': ADS_PARTNER_ID,
+            'partner_id': creds['partner_id'],
             'timestamp': ts,
             'sign': sign,
             'access_token': tokens['access_token'],
-            'shop_id': SHOP_ID,
+            'shop_id': creds['shop_id'],
             'campaign_id_list': str(campaign_id),
             'info_type_list': '1'
         }
-        
+
         resp = requests.get(url, params=params, timeout=5)
         data = resp.json()
         
@@ -413,6 +344,7 @@ def get_campaign_detail(tokens, campaign_id):
 
 def get_ad_performance(tokens):
     """Get daily ad performance data using correct endpoint and date format."""
+    creds = ads_creds()
     # Date format: DD-MM-YYYY
     end_date = datetime.now()
     start_date = end_date - timedelta(days=7)
@@ -422,16 +354,16 @@ def get_ad_performance(tokens):
     
     ts = int(time.time())
     path = '/api/v2/ads/get_all_cpc_ads_daily_performance'
-    base = f"{ADS_PARTNER_ID}{path}{ts}{tokens['access_token']}{SHOP_ID}"
-    sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+    base = f"{creds['partner_id']}{path}{ts}{tokens['access_token']}{creds['shop_id']}"
+    sign = hmac.new(creds['partner_key'].encode(), base.encode(), hashlib.sha256).hexdigest()
     
     url = f"{BASE_URL}{path}"
     params = {
-        'partner_id': ADS_PARTNER_ID,
+        'partner_id': creds['partner_id'],
         'timestamp': ts,
         'sign': sign,
         'access_token': tokens['access_token'],
-        'shop_id': SHOP_ID,
+        'shop_id': creds['shop_id'],
         'start_date': start_date_str,
         'end_date': end_date_str
     }
@@ -713,10 +645,11 @@ elif app_mode == "📢 Ads Manager":
     ads_tokens = load_ads_tokens()
     
     if not ads_tokens:
-        st.warning("""
+        ads = ads_creds()
+        st.warning(f"""
         **⚠️ Ads App Not Authorized**
         
-        The Ads app (Partner ID 2030650) needs to be authorized separately.
+        The Ads app (Partner ID {ads['partner_id']}) needs to be authorized separately.
         """)
         
         col1, col2 = st.columns(2)
@@ -726,11 +659,11 @@ elif app_mode == "📢 Ads Manager":
                 import urllib.parse
                 ts = int(time.time())
                 path = '/api/v2/shop/auth_partner'
-                base = f"{ADS_PARTNER_ID}{path}{ts}"
-                sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
+                base = f"{ads['partner_id']}{path}{ts}"
+                sign = hmac.new(ads['partner_key'].encode(), base.encode(), hashlib.sha256).hexdigest()
                 
                 auth_url = f"https://partner.shopeemobile.com{path}?" + urllib.parse.urlencode({
-                    'partner_id': ADS_PARTNER_ID,
+                    'partner_id': ads['partner_id'],
                     'timestamp': ts,
                     'sign': sign,
                     'redirect': 'https://shopee-automation-70ts.onrender.com'
@@ -743,41 +676,13 @@ elif app_mode == "📢 Ads Manager":
             auth_code = st.text_input("Enter auth code:", placeholder="6a636941...")
             if st.button("✅ Exchange for Tokens") and auth_code:
                 try:
-                    # Exchange code for tokens
-                    ts = int(time.time())
-                    path = '/api/v2/auth/token/get'
-                    base = f"{ADS_PARTNER_ID}{path}{ts}"
-                    sign = hmac.new(ADS_PARTNER_KEY.encode(), base.encode(), hashlib.sha256).hexdigest()
-                    
-                    url = f"https://partner.shopeemobile.com{path}?partner_id={ADS_PARTNER_ID}&timestamp={ts}&sign={sign}"
-                    body = {
-                        'code': auth_code,
-                        'shop_id': SHOP_ID,
-                        'partner_id': ADS_PARTNER_ID
-                    }
-                    
-                    resp = requests.post(url, json=body)
-                    data = resp.json()
-                    
-                    if 'access_token' in data:
-                        # Save to file
-                        with open('tokens_ads.json', 'w') as f:
-                            json.dump(data, f, indent=2)
-                        
-                        # Show env var for Render
+                    from token_manager import TokenManager
+                    tm = TokenManager(".")
+                    if tm.exchange_code("ads", auth_code):
                         st.success("✅ Ads app authorized!")
-                        st.warning("""
-                        **⚠️ IMPORTANT: Add to Render Environment Variables**
-                        
-                        Copy this value to Render Dashboard → Environment:
-                        
-                        **Key:** `SHOPEE_ADS_TOKENS`
-                        **Value:** (copy from below)
-                        """)
-                        st.code(json.dumps(data), language=None)
-                        st.info("After adding to Render, redeploy. Then refresh this page.")
+                        st.info("Refresh this page to load live Ads data.")
                     else:
-                        st.error(f"❌ Failed: {data.get('error', 'Unknown')}")
+                        st.error("❌ Token exchange failed. Check the auth code and try again.")
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
         

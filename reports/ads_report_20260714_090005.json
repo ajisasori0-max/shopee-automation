@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-07-14T09:00:05.596264",
+  "shop_id": 1147948100,
+  "summary": {
+    "total_spend": 418074,
+    "total_gmv": 1627200,
+    "roas": 3.89213392844329,
+    "ctr": 3.8214688158345993,
+    "campaigns_count": 11
+  },
+  "recommendations": [],
+  "actions_taken": [
+    "Restructured campaign 445446513 to Rp 150,000",
+    "Restructured campaign 447589870 to Rp 150,000",
+    "Increased budget for campaign 445446513 to Rp 165,375",
+    "Increased budget for campaign 447589870 to Rp 165,375"
+  ],
+  "auto_adjust_enabled": true
+}

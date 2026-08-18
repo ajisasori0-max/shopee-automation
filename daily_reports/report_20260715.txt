@@ -1,0 +1,33 @@
+======================================================================
+📊 DAILY MONITOR REPORT — 2026-07-15 10:37
+======================================================================
+
+🎯 KEY METRICS (Last 14 Days)
+   ROAS:        3.81x
+   Daily Spend: Rp 45,349
+   Daily GMV:   Rp 172,627
+   Daily Orders: 3.0
+   AOV:         Rp 57,542
+   CTR:         3.98%
+   CPC:         Rp 508
+   CPA:         Rp 15,116
+   CPM:         Rp 20,214
+   Conv Rate:   3.36%
+
+📈 7-DAY TREND (Last 7 vs Previous 7)
+   ROAS:   3.38x vs 4.32x (-0.94x)
+   Spend:  Rp 344,813 vs Rp 281,630 (+63,183)
+   Orders: 22 vs 19 (+3)
+   ⚠️  ROAS DECLINING
+
+📋 ACTIVE CAMPAIGNS (11)
+   ✅ PAYUNG OTOMATIS PREMIUM 3D CAP KAPAL KOR Rp   47,250
+   ✅ PAYUNG LIPAT ANTI UV PREMIUM CAP KAPAL M Rp  165,375
+   ✅ CAP KAPAL PAYUNG LIPAT PREMIUM METALIK - Rp  165,375
+   ✅ PAYUNG LIPAT PREMIUM METALIK CAP KAPAL - Rp   47,250
+                                            Rp  425,250 TOTAL
+
+🚦 STATUS
+   🚨 EMERGENCY: ROAS BELOW 4.0x — Consider budget cut
+
+======================================================================

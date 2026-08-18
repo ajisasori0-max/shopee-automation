@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: shopee-automation
+    runtime: python
+    region: singapore
+    plan: standard
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      python scripts/render_init_secrets.py && \
+      python -m alembic upgrade head && \
+      PYTHONPATH=. streamlit run streamlit_app.py \
+        --server.port $PORT \
+        --server.headless true \
+        --server.enableCORS false \
+        --server.enableXsrfProtection false
+    envVars:
+      - key: PYTHONPATH
+        value: .
+      - key: DATABASE_URL
+        value: sqlite:///data/commerceos.db
+      - key: COMMERCEOS_STORE_ID
+        value: store-ppm-001
+      - key: COMMERCEOS_SECRET_FILE
+        value: /data/.commerceos/secrets.json
+      - key: COMMERCEOS_TOKEN_WORKSPACE
+        value: /data
+      - key: COMMERCEOS_OBSIDIAN_VAULT_PATH
+        value: /tmp/obsidian_vault
+      - key: FULL_RESYNC
+        value: "0"
+      - key: COMMERCEOS_BACKGROUND_SYNC
+        value: "1"
+      - key: PGSSLMODE
+        value: require
+    disk:
+      name: commerceos-data
+      mountPath: /data
+      sizeGB: 5
+    healthCheckPath: /_stcore/health

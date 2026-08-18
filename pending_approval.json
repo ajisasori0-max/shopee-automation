@@ -1,10 +1,15 @@
 {
-  "timestamp": "2026-04-08T09:00:05.015549",
-  "recommendations": [
-    {
-      "type": "warning",
-      "message": "ROAS 0.0x below minimum (4x). Check listings/audience."
-    }
-  ],
-  "status": "pending_approval"
+  "status": "cleared",
+  "cleared_at": "2026-05-16T15:45:00",
+  "reason": "Stale data from April 8 — optimizer reinstalled with v3.1",
+  "previous_data": {
+    "timestamp": "2026-04-08T09:00:05.015549",
+    "recommendations": [
+      {
+        "type": "warning",
+        "message": "ROAS 0.0x below minimum (4x). Check listings/audience."
+      }
+    ],
+    "status": "pending_approval"
+  }
 }

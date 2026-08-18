@@ -1,0 +1,41 @@
+[
+  {
+    "campaign_id": 447589870,
+    "action": "pause",
+    "response": {
+      "response": {
+        "campaign_id": 447589870
+      },
+      "request_id": "e3e3e7f35616e8045195da50443ffe00",
+      "error": "",
+      "message": "",
+      "warning": ""
+    }
+  },
+  {
+    "campaign_id": 452409640,
+    "action": "pause",
+    "response": {
+      "response": {
+        "campaign_id": 452409640
+      },
+      "request_id": "e3e3e7f35616e8106740b07cde6c8400",
+      "error": "",
+      "message": "",
+      "warning": ""
+    }
+  },
+  {
+    "campaign_id": 452411592,
+    "action": "pause",
+    "response": {
+      "response": {
+        "campaign_id": 452411592
+      },
+      "request_id": "e3e3e7f35616e81f1ea5b5f7afb0a000",
+      "error": "",
+      "message": "",
+      "warning": ""
+    }
+  }
+]

@@ -1,1 +1,10 @@
-{"date": "2026-04-07T00:00:00"}
+{
+  "date": "2026-05-16T15:45:00",
+  "version": "3.1",
+  "mode": "stable",
+  "target_roas": 3.5,
+  "max_budget": 500000,
+  "auto_adjust": true,
+  "last_run": null,
+  "status": "installed"
+}

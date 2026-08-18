@@ -1,0 +1,84 @@
+[
+  {
+    "campaign_id": 445446513,
+    "name": "PAYUNG LIPAT ANTI UV",
+    "action": "change_auto_bidding_roas_4.5",
+    "response": {
+      "response": {
+        "campaign_id": 445446513
+      },
+      "request_id": "e3e3e7f35616e4433cb309e5bfcd8900",
+      "error": "",
+      "message": "",
+      "warning": ""
+    }
+  },
+  {
+    "campaign_id": 447589870,
+    "name": "PAYUNG LIPAT METALIK",
+    "action": "change_auto_bidding_roas_4.5",
+    "response": {
+      "response": {
+        "campaign_id": 447589870
+      },
+      "request_id": "e3e3e7f35616e451d917f265105ecf00",
+      "error": "",
+      "message": "",
+      "warning": ""
+    }
+  },
+  {
+    "campaign_id": 452409640,
+    "name": "PAYUNG LIPAT MOTIF 3D",
+    "action": "change_auto_bidding_roas_4.5",
+    "response": {
+      "response": {
+        "campaign_id": 452409640
+      },
+      "request_id": "e3e3e7f35616e45eb2a22c83aac21e00",
+      "error": "",
+      "message": "",
+      "warning": ""
+    }
+  },
+  {
+    "campaign_id": 452411592,
+    "name": "PAYUNG LIPAT METALIK 2",
+    "action": "change_auto_bidding_roas_4.5",
+    "response": {
+      "response": {
+        "campaign_id": 452411592
+      },
+      "request_id": "e3e3e7f35616e46b722edd1031e78600",
+      "error": "",
+      "message": "",
+      "warning": ""
+    }
+  },
+  {
+    "campaign_id": 445311693,
+    "name": "PAYUNG OTOMATIS 3D",
+    "action": "change_auto_bidding_roas_4.5",
+    "response": {
+      "response": {
+        "campaign_id": 445311693
+      },
+      "request_id": "e3e3e7f35616e477cbaee893426a8b00",
+      "error": "",
+      "message": "",
+      "warning": ""
+    }
+  },
+  {
+    "campaign_id": 445335702,
+    "name": "PAYUNG GOLF SILVER",
+    "action": "change_auto_bidding_roas_4.5",
+    "response": {
+      "response": null,
+      "request_id": "e3e3e7f35616e4843d320c3b38441400",
+      "error": "error_server",
+      "message": "Something wrong. Please try later.",
+      "warning": ""
+    }
+  }
+]

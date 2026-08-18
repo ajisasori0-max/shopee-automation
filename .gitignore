@@ -1,7 +1,36 @@
 # Sensitive files
 .env
-tokens.json
 *.env
+.env.*
+
+# Secret / credential stores
+.commerceos/
+.streamlit/secrets.toml
+
+# Token / credential files
+tokens.json
+tokens_*.json
+!tokens.json.example
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Root-level auth/debug scratch files (may contain partner keys, tokens, chat IDs)
+/auth_*.py
+/check_token.py
+/debug_*.py
+/diag_*.py
+/midday_check_final.py
+/test_*.py
+/*.key
+/*.secret
 
 # Python cache
 __pycache__/
@@ -25,6 +54,13 @@ Thumbs.db
 *.swp
 *.swo
 
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+test_*.db
+test_*_vault/
+
 # Test data that might have real info
 simulated_orders.json
 automation_state.json
@@ -32,3 +68,4 @@ monthly_report_*.json
 
 # Keep example files
 !.env.example
+.Trash/

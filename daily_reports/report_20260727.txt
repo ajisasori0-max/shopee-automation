@@ -1,0 +1,34 @@
+======================================================================
+📊 DAILY MONITOR REPORT — 2026-07-27 08:00
+⚠️  FALLBACK MODE: API tokens expired or returned no data; using historical database
+======================================================================
+
+🎯 KEY METRICS (Last 14 Days)
+   ROAS:        4.33x
+   Daily Spend: Rp 24,537
+   Daily GMV:   Rp 106,286
+   Daily Orders: 1.1
+   AOV:         Rp 93,000
+   CTR:         4.45%
+   CPC:         Rp 387
+   CPA:         Rp 21,470
+   CPM:         Rp 17,231
+   Conv Rate:   1.80%
+
+📈 7-DAY TREND (Last 7 vs Previous 7)
+   ROAS:   6.68x vs 2.46x (+4.22x)
+   Spend:  Rp 152,695 vs Rp 190,827 (-38,132)
+   Orders: 7 vs 9 (-2)
+   ✅ ROAS IMPROVING
+
+📋 ACTIVE CAMPAIGNS: No live campaign data available
+
+🚦 STATUS
+   ⚠️  ROAS BELOW FLOOR (4.5x) — Monitor closely
+
+🔧 TECHNICAL ALERT
+   ❌ API tokens expired or no live data returned
+   ❌ Manual OAuth re-authorization may be required
+   ℹ️  Report generated from historical database (growth_data.db)
+
+======================================================================

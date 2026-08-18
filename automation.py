@@ -9,15 +9,17 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from shopee_client import ShopeeClient
+from commerceos.platform.shopee_config import get_seller_credentials
 
 class ShopeeAutomation:
     def __init__(self):
+        creds = get_seller_credentials()
         self.client = ShopeeClient(
-            partner_id=1221616,
-            partner_key="shpk4d6149704f516949617a70434a416a5a476e5349705473684b596a664c6f",
-            shop_id=226682118,
-            tokens_file="tokens.json",
-            sandbox=True
+            partner_id=creds["partner_id"],
+            partner_key=creds["partner_key"],
+            shop_id=creds["shop_id"],
+            tokens_file="tokens_production.json",
+            sandbox=False
         )
         self.state_file = Path("automation_state.json")
         self.state = self._load_state()

@@ -1,0 +1,39 @@
+[
+  {
+    "campaign_id": 447589870,
+    "action": "resume",
+    "response": {
+      "response": {
+        "campaign_id": 447589870
+      },
+      "request_id": "e3e3e7f35619e3e706cb1cd888cfd400",
+      "error": "",
+      "message": "",
+      "warning": ""
+    }
+  },
+  {
+    "campaign_id": 452409640,
+    "action": "resume",
+    "response": {
+      "response": null,
+      "request_id": "e3e3e7f35619e3f3d1b24307a3279100",
+      "error": "ads.item.sold_out",
+      "message": "Item is sold out.",
+      "warning": ""
+    }
+  },
+  {
+    "campaign_id": 452411592,
+    "action": "resume",
+    "response": {
+      "response": {
+        "campaign_id": 452411592
+      },
+      "request_id": "e3e3e7f35619e3ff504d9be7a163a400",
+      "error": "",
+      "message": "",
+      "warning": ""
+    }
+  }
+]

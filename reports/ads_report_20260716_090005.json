@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-07-16T09:00:05.031118",
+  "shop_id": 1147948100,
+  "summary": {
+    "total_spend": 0,
+    "total_gmv": 0,
+    "roas": 0,
+    "ctr": 0,
+    "campaigns_count": 11
+  },
+  "recommendations": [
+    {
+      "action": "ALERT",
+      "message": "\u26a0\ufe0f Shop ROAS (0.00x) below minimum (2.5x)",
+      "priority": "HIGH"
+    },
+    {
+      "action": "ROAS_UP",
+      "message": "\ud83d\udcc8 Increase ROAS target toward 3.5x (current: 0.00x)",
+      "priority": "MEDIUM"
+    },
+    {
+      "action": "CREATIVE",
+      "message": "\ud83c\udfa8 CTR (0.00%) is low - consider updating product images/titles",
+      "priority": "MEDIUM"
+    }
+  ],
+  "actions_taken": [
+    "Restructured campaign 445446513 to Rp 150,000",
+    "Restructured campaign 447589870 to Rp 150,000",
+    "Decreased budget for campaign 445446513 to Rp 148,837 (low ROAS)",
+    "Decreased budget for campaign 447589870 to Rp 148,837 (low ROAS)",
+    "Decreased budget for campaign 445311693 to Rp 42,525 (low ROAS)",
+    "Decreased budget for campaign 452411592 to Rp 42,525 (low ROAS)"
+  ],
+  "auto_adjust_enabled": true
+}

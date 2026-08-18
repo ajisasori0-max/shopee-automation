@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-06-18T09:00:03.096687",
+  "shop_id": 1147948100,
+  "summary": {
+    "total_spend": 152594,
+    "total_gmv": 403700,
+    "roas": 2.6455823951138315,
+    "ctr": 4.763124199743918,
+    "campaigns_count": 11
+  },
+  "recommendations": [
+    {
+      "action": "ROAS_UP",
+      "message": "\ud83d\udcc8 Increase ROAS target toward 3.5x (current: 2.65x)",
+      "priority": "MEDIUM"
+    }
+  ],
+  "actions_taken": [
+    "Restructured campaign 445446513 to Rp 150,000",
+    "Restructured campaign 447589870 to Rp 150,000",
+    "Restructured campaign 445311693 to Rp 50,000",
+    "Restructured campaign 452411592 to Rp 50,000"
+  ],
+  "auto_adjust_enabled": true
+}
