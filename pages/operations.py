@@ -1,11 +1,13 @@
 """Operations page for the Web COO Dashboard."""
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
 BASE_DIR = Path(__file__).parent.parent
-import sys
 sys.path.insert(0, str(BASE_DIR))
 
 from commerceos.config.settings import get_settings
@@ -54,6 +56,30 @@ st.divider()
 tab_sync, tab_jobs, tab_health, tab_alerts, tab_dead = st.tabs(["Sync", "Jobs", "System Health", "Alerts", "Dead Letters"])
 
 with tab_sync:
+    col_sync1, col_sync2 = st.columns([1, 3])
+    with col_sync1:
+        if st.button("🔄 Sync Now", help="Run incremental sync + KPI refresh in the background"):
+            with st.spinner("Starting sync..."):
+                env = os.environ.copy()
+                env["PYTHONPATH"] = str(BASE_DIR)
+                env["FULL_RESYNC"] = "0"
+                env["DATABASE_URL"] = SETTINGS.database_url
+                result = subprocess.run(
+                    [sys.executable, str(BASE_DIR / "scripts" / "sync_then_refresh.py")],
+                    cwd=str(BASE_DIR),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=1800,
+                )
+                if result.returncode == 0:
+                    st.success("Sync completed successfully")
+                    st.rerun()
+                else:
+                    st.error("Sync failed — check logs")
+                    with st.expander("Error output"):
+                        st.text(result.stderr[-2000:])
+
     freshness = data.get("sync", {}).get("freshness", {})
     if freshness:
         df = pd.DataFrame(
