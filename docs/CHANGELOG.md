@@ -3,6 +3,16 @@
 Historical record of completed work packages for the Shopee / CommerceOS project.
 Do not edit active work package details here; update PROJECT_STATE.md instead.
 
+## 2026-08-21 — Pytest Collection Fix
+
+- Root-cause: running `pytest` from repo root auto-collected dead scripts in `archive/debug_scripts/test_order_create.py` and `archive/scripts/test_tokens.py`, which import removed modules (`shopee_client`, `full_automation`), causing 2 collection errors.
+- Created `pytest.ini` at repo root:
+  - `testpaths = tests` so only canonical tests are discovered.
+  - `norecursedirs = archive .venv dist build .git ...` to skip legacy / generated directories.
+  - `addopts = -q --tb=short` for concise default output.
+- Verified canonical suite: **343 passed** in ~24 s; plain `pytest` now exits 0 with no collection errors.
+- Updated `docs/PROJECT_STATE.md` verification line and technical-debt note about `archive/`.
+
 ## 2026-08-12 — Web COO Dashboard COMPLETE
 
 - Built single orchestration service `commerceos/coo/web_service.py` (`WebCOODashboardService`) that exposes all dashboard data to Streamlit pages.

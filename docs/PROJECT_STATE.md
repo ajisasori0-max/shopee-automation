@@ -8,7 +8,7 @@ Updated after every work package. Represents the current truth of the system.
 - **Epic:** Web COO Dashboard — COMPLETE
 - **Status:** WP3.4 COMPLETE; WP3.5 COMPLETE; Epic 4 COMPLETE; Epic 5 COMPLETE; Web COO Dashboard COMPLETE
 - **Active blockers:** None
-- **Verification:** 343 tests passing (314 unit + 29 integration); Streamlit dashboard launched and verified; sync + OAT smoke tests passed
+- **Verification:** 343 tests passing (314 unit + 29 integration); Streamlit dashboard launched and verified; sync + OAT smoke tests passed; plain `pytest` now passes cleanly after excluding archived scripts
 
 ## Completed Milestones
 
@@ -55,6 +55,7 @@ Updated after every work package. Represents the current truth of the system.
 3. No Alembic; migrations are standalone scripts.
 4. Host crontab still references archived scripts (manual cleanup needed).
 5. Streamlit dashboard computes today's metrics from materialized KPIs; if no orders occurred today, metrics are zero — this is data-accurate but may confuse first-time users until a "last N days" default is added.
+6. `archive/` contains dead scripts with unresolvable imports; they are now excluded from pytest discovery via `pytest.ini`, but long-term they should either be deleted or moved outside the repo root.
 
 ## Immediate Next Actions
 
